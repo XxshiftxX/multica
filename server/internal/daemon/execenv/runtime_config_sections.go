@@ -45,62 +45,11 @@ func writeHeader(b *strings.Builder) {
 	b.WriteString("You are a coding agent in the Multica platform. Use the `multica` CLI to interact with the platform.\n\n")
 }
 
-// writeBackgroundTaskSafetySlim emits the Background Task Safety section
-// in its judgment form (MUL-5442): four paragraphs — the platform fact
-// everything else derives from (turn exit is task-terminal, no wakeup
-// exists, never background-and-yield), the external-systems/CI boundary
-// with its single explicit-ask exception, and the persistent-service
-// handoff contract. The pinned anchors the tests assert are the fact,
-// each boundary, both exceptions, and the handoff triple.
-//
-// MUL-5223: the external-work boundary alone did not stop agents from
-// blocking on CI. Two holes are closed here. First, the boundary was
-// stated as a concept while the section's only concrete "how to wait"
-// example was a blocking foreground call — and `gh pr checks --watch` is
-// exactly that shape, so watching CI read as compliant. Named tool-shape
-// bans replace the inference. Second, the "unless acceptance criteria
-// require it" escape was being satisfied by the repo's own merge
-// requirements ("CI must pass before merge"), so the section now says
-// branch protection is not the agent's acceptance criterion, and gives
-// the replacement hand-off phrasing so the urge to prove quality lands
-// on local test output plus a PR link instead of on a wait.
-//
-// The ban is scoped, not absolute: an explicitly requested CI result is
-// still reachable, and it names the one executable way to collect it
-// (a single foreground blocking watch inside the same turn). Enabling
-// auto-merge is not a wait and stays allowed — only waiting for it to
-// land is banned.
-//
-// MUL-5274 adds one narrow lifetime exception: a user-requested local
-// development/test service may be handed off after its readiness and cleanup
-// contract are complete. It is not a future result or wakeup. The brief keeps
-// this separate from tests, builds, monitors, and CI polling, which remain
-// run-owned until their result is collected. The brief states only the
-// handoff contract (lifecycle independence, durable logs, cleanup handle);
-// how to detach is the Local Dev Environment skill's concern, not the brief's.
-//
-// Paragraph order: the CI exception lives INSIDE the boundary paragraph
-// (one "The one exception" occurrence, count-guarded in the tests), and the
-// persistent-service paragraph closes the section. A former scoping sentence
-// ("The rules above apply only to work owned by the current run") stays
-// dropped: the boundary paragraph carries its own scope ("are not
-// run-owned").
-//
-// MUL-5442 stage 2 (owner-authorized judgment rewrite): enforcement details
-// a frontier model derives from the platform fact were deliberately dropped
-// — the run-owned work enumeration, the tool-promise enumeration, the
-// wait/collect split rule, the persistent-service scope bullet, the
-// auto-merge and snapshot elaborations. Their pins were retired in the same
-// change. The incident history above (MUL-5223, MUL-5274, MUL-4091) remains
-// the WHY for what stays: the named --watch/watch/poll ban and merge-gate
-// denial survive because MUL-5223 proved the principle alone did not stop
-// CI-watching, and the handoff paragraph is review-locked verbatim
-// (URL/logs/stop triple, general cleanup handle) — do not reword it without
-// a fresh review decision.
+// writeBackgroundTaskSafetySlim describes run-owned work lifetime, persistent
+// service handoff, and safe child-process cleanup.
 func writeBackgroundTaskSafetySlim(b *strings.Builder) {
 	b.WriteString("## Background Task Safety\n\n")
 	b.WriteString("Multica marks the task terminal the moment your top-level turn exits — any run-owned work still active is orphaned, its result lost, and the final comment you meant to post never sends. There is no background-completion wakeup, whatever a tool response promises. Never background-and-yield: collect required results inside foreground tool calls that block to completion, run unobservable work synchronously, and never end a turn \"standing by\" for something to finish — that message becomes your final output.\n\n")
-	b.WriteString("External systems triggered by your completed actions — CI, GitHub Actions after a successful push — are not run-owned: do not wait for them, and do not run `gh pr checks --watch`, `gh run watch`, or sleep/retry polls. A repo's merge gate (\"CI must be green before merge\") is NOT your delivery acceptance criteria. Deliver what you have — \"Local tests pass; CI running: <PR link>\" is a complete hand-off. The one exception: when the trigger comment or the issue's acceptance criteria explicitly ask for the CI result, collect it as ONE foreground blocking call (`gh pr checks <pr> --watch`) inside this same turn.\n\n")
 	b.WriteString("A user explicitly asking for a local service to stay available after the turn is a persistent service handoff, not background-and-yield — allowed only when the running service itself is the requested deliverable. Detach its lifecycle from this run first (durable logs, a recorded cleanup handle such as PID/profile), verify readiness, and reply with the URL, logs, and stop instructions. Without a supervisor, describe survival as best-effort, not guaranteed.\n\n")
 	b.WriteString("Never terminate `multica` or `multica.exe` by executable name: a long-lived matching process may be the workspace daemon. Cancel only the exact child PID you started, and before terminating it compare that PID with `multica daemon status --output json`; never kill it if it is the reported daemon PID.\n\n")
 }

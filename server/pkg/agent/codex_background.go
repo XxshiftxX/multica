@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sort"
 	"sync"
 )
@@ -11,12 +12,18 @@ import (
 // codexBackgroundCommands tracks native command items, not arbitrary detached
 // OS processes. Only commands observed in this execution can keep it alive.
 type codexBackgroundCommands struct {
-	mu       sync.Mutex
-	commands map[string]*codexBackgroundCommand
-	awaiting map[string]bool
-	changed  chan struct{}
-	turnID   string
-	turnOpen bool
+	mu                   sync.Mutex
+	commands             map[string]*codexBackgroundCommand
+	awaiting             map[string]bool
+	changed              chan struct{}
+	turnID               string
+	turnOpen             bool
+	logger               *slog.Logger
+	rolloutPath          string
+	rolloutOffset        int64
+	rolloutTurn          string
+	rolloutCompletedTurn string
+	rolloutPollCalls     map[string]string
 }
 
 type codexBackgroundCommand struct {
@@ -69,11 +76,11 @@ func (b *codexBackgroundCommands) observe(method string, params map[string]any, 
 		item, _ := params["item"].(map[string]any)
 		id, _ := item["id"].(string)
 		if accepted && method == "item/started" && item["type"] == "agentMessage" && item["phase"] == "final_answer" {
-			// The process can finish between the final answer and turn/completed.
-			// Its result still needs a successor even if no process remains then.
+			// 최종 답변 뒤 완료되는 명령도 다음 턴에서 결과를 전달한다.
 			for id, command := range b.commands {
-				if !command.complete {
+				if !command.complete && !b.awaiting[id] {
 					b.awaiting[id] = true
+					b.log("awaiting", command, "final_answer_while_running")
 				}
 			}
 		}
@@ -87,6 +94,7 @@ func (b *codexBackgroundCommands) observe(method string, params map[string]any, 
 			}
 			command, _ := item["command"].(string)
 			b.commands[id] = &codexBackgroundCommand{ItemID: id, ProcessID: processID, Command: command, Status: "inProgress"}
+			b.log("registered", b.commands[id], "native_command")
 			changed = true
 		} else if command := b.commands[id]; command != nil && !command.complete {
 			status, _ := item["status"].(string)
@@ -105,11 +113,8 @@ func (b *codexBackgroundCommands) observe(method string, params map[string]any, 
 			command.Truncated = len(output) > 32*1024
 			command.Output = truncateUTF8(output, 32*1024)
 			lateCompletion, changed = !accepted, true
-			if b.turnOpen && !b.awaiting[id] {
-				// Ordinary synchronous commands have already returned to the
-				// active model. Do not retain their output for the whole run.
-				delete(b.commands, id)
-			}
+			b.log("completed", command, "terminal_event")
+			// 완료와 도구 반환 기록은 순서가 다를 수 있어 턴 경계까지 보존한다.
 		}
 	}
 	if changed {
@@ -119,6 +124,13 @@ func (b *codexBackgroundCommands) observe(method string, params map[string]any, 
 		}
 	}
 	return lateCompletion
+}
+
+// 판정 로그에는 명령문·출력·사용자 입력을 포함하지 않는다.
+func (b *codexBackgroundCommands) log(phase string, command *codexBackgroundCommand, reason string) {
+	if b.logger != nil {
+		b.logger.Debug("codex background command", "phase", phase, "reason", reason, "item_id", command.ItemID, "process_id", command.ProcessID, "turn_id", b.turnID)
+	}
 }
 
 // wait returns when commands left behind by the completed turn have terminal
@@ -134,6 +146,12 @@ func (b *codexBackgroundCommands) wait(ctx context.Context, processDone <-chan s
 			b.mu.Unlock()
 			return nil, true, nil
 		}
+		for id, command := range b.commands {
+			if command.complete && !b.awaiting[id] {
+				b.log("discarded", command, "no_pending_return")
+				delete(b.commands, id)
+			}
+		}
 		pending := false
 		commands = nil
 		for id := range b.awaiting {
@@ -146,6 +164,7 @@ func (b *codexBackgroundCommands) wait(ctx context.Context, processDone <-chan s
 		}
 		if len(commands) > 0 || !pending {
 			for _, command := range commands {
+				b.log("collected", &command, "continuation_batch")
 				delete(b.commands, command.ItemID)
 				delete(b.awaiting, command.ItemID)
 			}

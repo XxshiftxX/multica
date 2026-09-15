@@ -14,13 +14,15 @@ import (
 
 const codexBackgroundFixture = `
 turns=0
+printf '%s\n' '{"type":"response_item","payload":{"type":"custom_tool_call_output","internal_chat_message_metadata_passthrough":{"turn_id":"turn-1"},"output":[{"type":"input_text","text":"{\"chunk_id\":\"chunk\",\"wall_time_seconds\":0.25,\"session_id\":42}"}]}}' > "$0.rollout"
 while IFS= read -r line; do
   id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
   case "$line" in
     *'"method":"initialize"'*) printf '{"id":%s,"result":{}}\n' "$id" ;;
-    *'"method":"thread/start"'*) printf '{"id":%s,"result":{"thread":{"id":"thread-bg"}}}\n' "$id" ;;
+    *'"method":"thread/start"'*) printf '{"id":%s,"result":{"thread":{"id":"thread-bg","path":"%s.rollout"}}}\n' "$id" "$0" ;;
     *'"method":"turn/start"'*)
       turns=$((turns+1))
+      printf '{"type":"event_msg","payload":{"type":"task_complete","turn_id":"turn-%s"}}\n' "$turns" >> "$0.rollout"
       printf '{"id":%s,"result":{"turn":{"id":"turn-%s","status":"inProgress"}}}\n' "$id" "$turns"
       printf '{"method":"turn/started","params":{"threadId":"thread-bg","turn":{"id":"turn-%s"}}}\n' "$turns"
       if test "$turns" -eq 1; then
@@ -98,6 +100,52 @@ func backgroundEvent(method, id string, fields map[string]any) map[string]any {
 		item[key] = value
 	}
 	return map[string]any{"item": item}
+}
+
+func TestCodexBackgroundCompletionBeforeFinalAnswer(t *testing.T) {
+	b := newCodexBackgroundCommands()
+	b.observe("turn/started", backgroundEvent("turn/started", "turn-1", nil), true)
+	b.observe("item/started", backgroundEvent("item/started", "job", nil), true)
+	// 실제 도구 반환에 실행 중인 세션이 기록됐는지 확인한다.
+	b.commands["job"].ProcessID = "42"
+	b.observeReturnedSessions(`{"chunk_id":"chunk","wall_time_seconds":0.25,"session_id":42}`)
+	b.observe("item/completed", backgroundEvent("item/completed", "job", map[string]any{"status": "completed", "exitCode": float64(1), "aggregatedOutput": "EARLY_FAILURE"}), true)
+	b.observe("turn/completed", backgroundEvent("turn/completed", "turn-1", nil), true)
+	commands, _, err := b.wait(context.Background(), make(chan struct{}))
+	if err != nil || len(commands) != 1 || commands[0].Output != "EARLY_FAILURE" {
+		t.Fatalf("완료 결과가 유실됨: commands=%+v err=%v", commands, err)
+	}
+}
+
+func TestCodexExecuteEarlyBackgroundContinuation(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX shell fixture")
+	}
+	fixture := codexBackgroundFixture
+	var completion string
+	for _, line := range strings.Split(fixture, "\n") {
+		if strings.Contains(line, `"aggregatedOutput":"TEST_FAILURE"`) {
+			completion = line
+		}
+	}
+	fixture = strings.Replace(fixture, completion+"\n", "", 1)
+	marker := `{"method":"item/started","params":{"threadId":"thread-bg","turnId":"turn-1","item":{"type":"agentMessage"`
+	progress := `{"method":"item/started","params":{"threadId":"thread-bg","turnId":"turn-1","item":{"type":"reasoning","id":"resumed-model"}}}`
+	fixture = strings.Replace(fixture, marker, progress+"\n"+completion+"\n"+marker, 1)
+	backend, err := New("codex", Config{ExecutablePath: writeFakeCodexAppServer(t, fixture), Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), CodexBackgroundContinuation: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := backend.Execute(context.Background(), "test", ExecOptions{Timeout: 5 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range session.Messages {
+	}
+	result := <-session.Result
+	if result.Status != "completed" || result.Output != "FAILURE_HANDLED" {
+		t.Fatalf("조기 완료 뒤 재개 실패: %+v", result)
+	}
 }
 
 func TestCodexExecuteBackgroundTerminalFailures(t *testing.T) {

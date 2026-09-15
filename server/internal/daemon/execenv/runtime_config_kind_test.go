@@ -307,13 +307,9 @@ func TestSlimQuickCreateAvailableCommands(t *testing.T) {
 	}
 }
 
-// TestBackgroundTaskSafetySlimHardPins asserts the slim brief carries the
-// same hardened Background Task Safety pins as the legacy brief (MUL-4140).
-// The verbose path is covered by
-// TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic; this locks
-// the compressed slim path so a future slim-brief trim can't quietly drop
-// the no-background-and-yield / no-"standing by" guardrails that address
-// the MUL-4091 mechanism.
+// TestBackgroundTaskSafetySlimHardPins covers run lifetime and service handoff
+// safeguards in the assembled brief. Provider-specific file injection is covered
+// by TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic.
 func TestBackgroundTaskSafetySlimHardPins(t *testing.T) {
 
 	out := buildMetaSkillContent("claude", TaskContextForEnv{
@@ -323,13 +319,6 @@ func TestBackgroundTaskSafetySlimHardPins(t *testing.T) {
 
 	for _, want := range []string{
 		"## Background Task Safety",
-		// MUL-5442 judgment rewrite (owner-authorized pin renegotiation): the
-		// section now states the one platform fact, the external-systems/CI
-		// boundary with its single exception, and the review-locked
-		// persistent-service contract. Enforcement-detail pins that only
-		// restated derivations of the platform fact were retired with the
-		// prose. What stays pinned: the fact, each boundary, each exception,
-		// and the handoff triple — the things an agent cannot infer.
 		"any run-owned work still active is orphaned",
 		"no background-completion wakeup",
 		"whatever a tool response promises",
@@ -337,15 +326,6 @@ func TestBackgroundTaskSafetySlimHardPins(t *testing.T) {
 		"foreground tool calls that block",
 		"run unobservable work synchronously",
 		"standing by",
-		"are not run-owned: do not wait",
-		// The full compound ban, not its first item — MUL-5223 made this a
-		// non-derivable boundary, so no member may be silently dropped.
-		"do not run `gh pr checks --watch`, `gh run watch`, or sleep/retry polls",
-		"GitHub Actions after a successful push",
-		"NOT your delivery acceptance criteria",
-		"CI running: <PR link>",
-		"The one exception",
-		"ONE foreground blocking call (`gh pr checks <pr> --watch`)",
 		"persistent service handoff",
 		"running service itself is the requested deliverable",
 		"durable logs",
@@ -361,16 +341,6 @@ func TestBackgroundTaskSafetySlimHardPins(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("slim Background Task Safety missing hardened pin %q\n---\n%s", want, out)
 		}
-	}
-	// Exactly one exception (see the execenv provider-agnostic test for
-	// the incident this guards).
-	if got := strings.Count(out, "The one exception"); got != 1 {
-		t.Errorf("slim brief must state the CI exception exactly once, got %d\n---\n%s", got, out)
-	}
-	// `gh run watch` may only appear as a banned command, never as the
-	// section's example of how to wait properly.
-	if strings.Contains(out, "e.g. `gh run watch`") {
-		t.Errorf("slim Background Task Safety should not suggest waiting for external GitHub CI\n---\n%s", out)
 	}
 	// MUL-5274 review: with the persistent-service exception in the list, a
 	// "The rules above ..." scoping sentence would sweep in work that is

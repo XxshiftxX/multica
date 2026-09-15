@@ -136,6 +136,7 @@ type Config struct {
 	HeartbeatInterval              time.Duration
 	AgentTimeout                   time.Duration
 	CodexSemanticInactivityTimeout time.Duration
+	CodexBackgroundContinuation    bool // opt-in native terminal completion and successor turns
 	// CodexFirstTurnNoProgressTimeout is an explicit override for the Codex
 	// first-turn no-progress ceiling (MULTICA_CODEX_FIRST_TURN_TIMEOUT). 0 means
 	// unset: the backend keeps its default ceiling, which CodexSemanticInactivityTimeout
@@ -655,6 +656,7 @@ func LoadConfig(overrides Overrides) (Config, error) {
 		HeartbeatInterval:               heartbeatInterval,
 		AgentTimeout:                    agentTimeout,
 		CodexSemanticInactivityTimeout:  codexSemanticInactivityTimeout,
+		CodexBackgroundContinuation:     boolFromEnv("MULTICA_CODEX_BACKGROUND_CONTINUATION", false),
 		CodexFirstTurnNoProgressTimeout: codexFirstTurnNoProgressTimeout,
 		CodexHandshakeTimeout:           codexHandshakeTimeout,
 		CodexTurnInterruptTimeout:       codexTurnInterruptTimeout,

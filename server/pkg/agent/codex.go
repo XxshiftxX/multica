@@ -1193,6 +1193,10 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 	var semanticObserved atomic.Bool
 	turnNotificationGate := &codexTurnNotificationGate{}
 	firstItemWait := &codexFirstItemWaitObservation{}
+	var background *codexBackgroundCommands
+	if b.cfg.CodexBackgroundContinuation {
+		background = newCodexBackgroundCommands()
+	}
 
 	// turnDone is set before starting the reader goroutine so there is no
 	// race between the lifecycle goroutine writing and the reader reading.
@@ -1210,6 +1214,12 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 		activeLaunches:         activeLaunches,
 		notificationProtocol:   "unknown",
 		acceptNotification:     turnNotificationGate.accept,
+		background:             background,
+		onContinuationTurn: func() {
+			outputMu.Lock()
+			finalAnswer, lastAgentMessage = "", ""
+			outputMu.Unlock()
+		},
 		onDiscardedNotification: func(string, map[string]any) {
 			// Any app-server notification proves the process made semantic
 			// progress, even when it is intentionally excluded from the active
@@ -1657,6 +1667,44 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 		for waitingForTurn {
 			select {
 			case aborted := <-turnDone:
+				if background != nil && !aborted && c.getTurnError() == "" {
+					// A completed turn has crossed startup, even if its progress
+					// messages are still queued behind this terminal notification.
+					firstTurnStarted, firstTurnProgressObserved = true, true
+					stopFirstTurnNoProgressTimer()
+					finishFirstItemWait("turn_completed")
+					commands, nativeSuccessor, err := background.wait(runCtx, c.processDone)
+					if err != nil {
+						if runCtx.Err() != nil {
+							finishRunContextDone()
+							stopProcess()
+						} else {
+							waitingForTurn, finalStatus, finalError = false, "failed", err.Error()
+						}
+						continue
+					}
+					if len(commands) > 0 {
+						b.cfg.Logger.Info("codex background continuation", "thread_id", threadID, "commands", len(commands))
+						params := codexBackgroundTurnParams(threadID, commands)
+						applyCodexReasoningEffort(params, opts.ThinkingLevel)
+						applyCodexServiceTier(params, opts.ServiceTier)
+						if _, err := c.request(runCtx, "turn/start", params); err != nil {
+							if runCtx.Err() != nil {
+								finishRunContextDone()
+								stopProcess()
+							} else {
+								waitingForTurn, finalStatus, finalError = false, "failed", fmt.Sprintf("codex background continuation: %v", err)
+							}
+							continue
+						}
+					}
+					if nativeSuccessor || len(commands) > 0 {
+						lastSemanticActivity = time.Now()
+						lastSemanticActivityDescription = "background continuation"
+						resetTimer(semanticTimer, semanticInactivityTimeout)
+						continue
+					}
+				}
 				finishTurn(aborted)
 			case activity := <-semanticActivityCh:
 				lastSemanticActivity = time.Now()
@@ -2327,6 +2375,8 @@ type codexClient struct {
 
 	notificationProtocol string // "unknown", "legacy", "raw"
 	turnCompleted        bool
+	background           *codexBackgroundCommands
+	onContinuationTurn   func()
 
 	usageMu sync.Mutex
 	usage   TokenUsage // accumulated from turn events
@@ -2887,7 +2937,13 @@ func (c *codexClient) handleNotification(raw map[string]json.RawMessage) {
 	if c.isNotificationFromOtherThread(params) {
 		return
 	}
-	if c.acceptNotification != nil && !c.acceptNotification(method, params) {
+	accepted := c.acceptNotification == nil || c.acceptNotification(method, params)
+	if c.background != nil && c.background.observe(method, params, accepted) {
+		// A command may finish after its originating turn. Preserve that tool
+		// result even when the current-turn gate has advanced to a successor.
+		c.handleItemNotification(method, params)
+	}
+	if !accepted {
 		if c.onDiscardedNotification != nil {
 			c.onDiscardedNotification(method, params)
 		}
@@ -3370,6 +3426,12 @@ func (c *codexClient) handleRawNotification(method string, params map[string]any
 
 	case "turn/started":
 		if turnID := extractNestedString(params, "turn", "id"); turnID != "" {
+			if c.background != nil && turnID != c.activeTurnID() {
+				c.turnCompleted = false
+				if c.onContinuationTurn != nil {
+					c.onContinuationTurn()
+				}
+			}
 			c.setActiveTurnID(turnID)
 		}
 		if c.onMessage != nil {

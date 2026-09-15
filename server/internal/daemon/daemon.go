@@ -7687,13 +7687,14 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	// Repos are passed as metadata only — the agent checks them out on demand
 	// via `multica repo checkout <url>`.
 	taskCtx := execenv.TaskContextForEnv{
-		IssueID:             task.IssueID,
-		TriggerCommentID:    task.TriggerCommentID,
-		TriggerThreadID:     task.TriggerThreadID,
-		CommentReplyTargets: commentReplyThreads(task),
-		NewCommentCount:     task.NewCommentCount,
-		NewCommentsSince:    task.NewCommentsSince,
-		PriorSessionResumed: task.PriorSessionID != "",
+		CodexBackgroundContinuation: provider == "codex" && d.cfg.CodexBackgroundContinuation,
+		IssueID:                     task.IssueID,
+		TriggerCommentID:            task.TriggerCommentID,
+		TriggerThreadID:             task.TriggerThreadID,
+		CommentReplyTargets:         commentReplyThreads(task),
+		NewCommentCount:             task.NewCommentCount,
+		NewCommentsSince:            task.NewCommentsSince,
+		PriorSessionResumed:         task.PriorSessionID != "",
 		// MUL-5305: the server sets this when a more recent Codex session was
 		// withheld (rollout missing) and PriorSessionID is an older fallback (or
 		// absent). Seed the brief's continuity disclosure from it; the local
@@ -8490,16 +8491,17 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	// daemon never calls agent.New or agent.NewRuntime directly, so the two
 	// factories stay meaning exactly one thing each.
 	backend, err := agent.ResolveBackend(provider, agent.Config{
-		ExecutablePath: entry.Path,
-		LaunchPrefix:   profileFixedArgs,
-		CLIVersion:     resolvedVersion,
-		Env:            agentEnv,
-		Logger:         d.logger,
-		TaskID:         task.ID,
-		RuntimeID:      task.RuntimeID,
-		DaemonVersion:  d.cfg.CLIVersion,
-		CodexVersion:   codexVersion,
-		BuiltinRuntime: !usesCustomProfileCommand,
+		ExecutablePath:              entry.Path,
+		LaunchPrefix:                profileFixedArgs,
+		CLIVersion:                  resolvedVersion,
+		Env:                         agentEnv,
+		Logger:                      d.logger,
+		TaskID:                      task.ID,
+		RuntimeID:                   task.RuntimeID,
+		DaemonVersion:               d.cfg.CLIVersion,
+		CodexVersion:                codexVersion,
+		CodexBackgroundContinuation: provider == "codex" && d.cfg.CodexBackgroundContinuation,
+		BuiltinRuntime:              !usesCustomProfileCommand,
 	})
 	if err != nil {
 		return TaskResult{}, fmt.Errorf("create agent backend: %w", err)

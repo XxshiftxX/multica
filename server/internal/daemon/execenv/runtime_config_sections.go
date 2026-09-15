@@ -47,9 +47,13 @@ func writeHeader(b *strings.Builder) {
 
 // writeBackgroundTaskSafetySlim describes run-owned work lifetime, persistent
 // service handoff, and safe child-process cleanup.
-func writeBackgroundTaskSafetySlim(b *strings.Builder) {
+func writeBackgroundTaskSafetySlim(b *strings.Builder, codexContinuation bool) {
 	b.WriteString("## Background Task Safety\n\n")
-	b.WriteString("Multica marks the task terminal the moment your top-level turn exits — any run-owned work still active is orphaned, its result lost, and the final comment you meant to post never sends. There is no background-completion wakeup, whatever a tool response promises. Never background-and-yield: collect required results inside foreground tool calls that block to completion, run unobservable work synchronously, and never end a turn \"standing by\" for something to finish — that message becomes your final output.\n\n")
+	if codexContinuation {
+		b.WriteString("Multica keeps this execution alive while native Codex background terminal commands are unfinished. If your turn ends with such commands pending, their completion results are delivered to the same thread in a continuation turn. This survives turn boundaries, not daemon or app-server restarts. Arbitrary detached shell jobs and subagents are not covered.\n\n")
+	} else {
+		b.WriteString("Multica marks the task terminal the moment your top-level turn exits — any run-owned work still active is orphaned, its result lost, and the final comment you meant to post never sends. There is no background-completion wakeup, whatever a tool response promises. Never background-and-yield: collect required results inside foreground tool calls that block to completion, run unobservable work synchronously, and never end a turn \"standing by\" for something to finish — that message becomes your final output.\n\n")
+	}
 	b.WriteString("A user explicitly asking for a local service to stay available after the turn is a persistent service handoff, not background-and-yield — allowed only when the running service itself is the requested deliverable. Detach its lifecycle from this run first (durable logs, a recorded cleanup handle such as PID/profile), verify readiness, and reply with the URL, logs, and stop instructions. Without a supervisor, describe survival as best-effort, not guaranteed.\n\n")
 	b.WriteString("Never terminate `multica` or `multica.exe` by executable name: a long-lived matching process may be the workspace daemon. Cancel only the exact child PID you started, and before terminating it compare that PID with `multica daemon status --output json`; never kill it if it is the reported daemon PID.\n\n")
 }
@@ -940,7 +944,7 @@ func buildMetaSkillContentSlim(provider string, ctx TaskContextForEnv) string {
 	// broke prompt-cache prefix stability on every resume; they now travel in
 	// the per-turn user message (daemon.BuildPrompt) instead. See MUL-5377.
 	writeHeader(&b)
-	writeBackgroundTaskSafetySlim(&b)
+	writeBackgroundTaskSafetySlim(&b, provider == "codex" && ctx.CodexBackgroundContinuation)
 	writeAgentIdentity(&b, ctx)
 	writeRequestingUser(&b, ctx)
 	writeWorkspaceContext(&b, ctx)

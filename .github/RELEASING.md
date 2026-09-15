@@ -32,3 +32,9 @@ unresolved reachable vulnerability.
 
 Every Go binary retains its compiler version in the standard Go build metadata;
 use `go version -m <binary>` when auditing a downloaded release artifact.
+
+## Shift 포크
+
+`XxshiftxX/multica`의 자체 배포는 [Shift 릴리스 경로](../docs/shift/deployment.md)를
+사용한다. `Shift release` workflow가 `main` push로 이미지와 CLI를 발행하며,
+위 upstream semver tag·Homebrew 릴리스 절차와 별도로 운영한다.

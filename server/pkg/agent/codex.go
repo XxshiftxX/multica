@@ -1196,6 +1196,7 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 	var background *codexBackgroundCommands
 	if b.cfg.CodexBackgroundContinuation {
 		background = newCodexBackgroundCommands()
+		background.logger = b.cfg.Logger
 	}
 
 	// turnDone is set before starting the reader goroutine so there is no
@@ -1673,6 +1674,15 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 					firstTurnStarted, firstTurnProgressObserved = true, true
 					stopFirstTurnNoProgressTimer()
 					finishFirstItemWait("turn_completed")
+					if err := background.awaitReturns(runCtx); err != nil {
+						if runCtx.Err() != nil {
+							finishRunContextDone()
+							stopProcess()
+						} else {
+							waitingForTurn, finalStatus, finalError = false, "failed", err.Error()
+						}
+						continue
+					}
 					commands, nativeSuccessor, err := background.wait(runCtx, c.processDone)
 					if err != nil {
 						if runCtx.Err() != nil {
@@ -2005,6 +2015,7 @@ func (c *codexClient) startOrResumeThread(ctx context.Context, opts ExecOptions,
 		)
 		resumeResult, err := c.request(ctx, "thread/resume", resumeParams)
 		if err == nil {
+			c.captureBackgroundRolloutPath(resumeResult)
 			if threadID := extractThreadID(resumeResult); threadID != "" {
 				logger.Info("codex lifecycle",
 					"phase", "thread_resume_response",
@@ -2067,6 +2078,7 @@ func (c *codexClient) startOrResumeThread(ctx context.Context, opts ExecOptions,
 	if err != nil {
 		return "", false, fmt.Errorf("codex thread/start failed: %w", err)
 	}
+	c.captureBackgroundRolloutPath(startResult)
 	threadID := extractThreadID(startResult)
 	if threadID == "" {
 		return "", false, fmt.Errorf("codex thread/start returned no thread ID")

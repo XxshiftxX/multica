@@ -21,6 +21,41 @@ import (
 // a failed native background command must wake a successor that writes the
 // recovery artifact before the backend returns its final result.
 func TestCodexRealBackgroundContinuation(t *testing.T) {
+	testCodexRealBackgroundContinuation(t, false)
+}
+
+func TestCodexRealEarlyBackgroundContinuation(t *testing.T) {
+	testCodexRealBackgroundContinuation(t, true)
+}
+
+func TestCodexRealBackgroundDirectPoll(t *testing.T) {
+	requireRealAgentSmoke(t)
+	path, err := exec.LookPath("codex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	backend, err := New("codex", Config{ExecutablePath: path, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), CodexBackgroundContinuation: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := backend.Execute(context.Background(), "This is an isolated test. Do not access the network or spawn agents. Run `sleep 3; printf POLL_FINISHED` using exec_command with yield_time_ms=250. Then use write_stdin to collect that session's final output, waiting until exit code 0. Reply exactly POLL_COLLECTED. Do not leave the result uncollected.", ExecOptions{Cwd: t.TempDir(), Timeout: 2 * time.Minute})
+	if err != nil {
+		t.Fatal(err)
+	}
+	turns := 0
+	for message := range session.Messages {
+		if message.Type == MessageStatus && message.Status == "running" {
+			turns++
+		}
+	}
+	result := <-session.Result
+	if result.Status != "completed" || strings.TrimSpace(result.Output) != "POLL_COLLECTED" || turns != 1 {
+		t.Fatalf("직접 폴링 뒤 불필요한 재개: turns=%d result=%+v", turns, result)
+	}
+}
+
+func testCodexRealBackgroundContinuation(t *testing.T, early bool) {
+	t.Helper()
 	requireRealAgentSmoke(t)
 	path, err := exec.LookPath("codex")
 	if err != nil {
@@ -36,22 +71,56 @@ func TestCodexRealBackgroundContinuation(t *testing.T) {
 		"First run exactly `sleep 12; printf MULTICA_EXPECTED_FAILURE; exit 1` using exec_command with yield_time_ms=1000. " +
 		"When it returns a running session ID, immediately end this turn with exactly BACKGROUND_PENDING. Do not poll or call write_stdin. " +
 		"Multica will deliver the completed command as tool output in a new turn. When that result arrives, verify its exitCode is 1 and output includes MULTICA_EXPECTED_FAILURE, then run `printf repaired > recovery.txt` and reply exactly BACKGROUND_RECOVERED."
-	session, err := backend.Execute(context.Background(), prompt, ExecOptions{Cwd: dir, Timeout: 2 * time.Minute})
+	if early {
+		prompt = strings.Replace(prompt, "sleep 12", "sleep 4", 1)
+		prompt = strings.Replace(prompt, "immediately end this turn", "first run a separate synchronous `sleep 6` command with yield_time_ms=10000, then end this turn", 1)
+	}
+	options := ExecOptions{Cwd: dir, Timeout: 2 * time.Minute}
+	if early {
+		// 운영 이슈처럼 기존 스레드를 새 App Server 프로세스에서 재개한다.
+		seed, err := backend.Execute(context.Background(), "Reply exactly READY. Do not call any tools.", options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for range seed.Messages {
+		}
+		result := <-seed.Result
+		if result.Status != "completed" || result.SessionID == "" {
+			t.Fatalf("스레드 준비 실패: %+v", result)
+		}
+		options.ResumeSessionID = result.SessionID
+	}
+	session, err := backend.Execute(context.Background(), prompt, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var turns int
+	seenPending, seenCompletion := false, false
+	completedBeforePending := false
 	for message := range session.Messages {
 		if message.Type == MessageStatus && message.Status == "running" {
 			turns++
 		}
+		if message.Type == MessageToolResult && strings.Contains(message.Output, "MULTICA_EXPECTED_FAILURE") {
+			seenCompletion = true
+			completedBeforePending = !seenPending
+		}
+		if message.Type == MessageText && strings.TrimSpace(message.Content) == "BACKGROUND_PENDING" {
+			seenPending = true
+		}
 	}
 	result := <-session.Result
+	if early && result.SessionID != options.ResumeSessionID {
+		t.Fatalf("다른 스레드로 재개됨: %s", result.SessionID)
+	}
 	if result.Status != "completed" || strings.TrimSpace(result.Output) != "BACKGROUND_RECOVERED" {
 		t.Fatalf("result=%+v\nlogs=%s", result, logs.String())
 	}
-	if turns < 2 || !strings.Contains(logs.String(), "codex background continuation") {
+	if turns != 2 || !strings.Contains(logs.String(), "codex background continuation") {
 		t.Fatalf("no continuation observed: turns=%d logs=%s", turns, logs.String())
+	}
+	if !seenPending || !seenCompletion || completedBeforePending != early {
+		t.Fatalf("완료 순서 불일치: pending=%v completion=%v before=%v want=%v", seenPending, seenCompletion, completedBeforePending, early)
 	}
 	data, err := os.ReadFile(filepath.Join(dir, "recovery.txt"))
 	if err != nil || string(data) != "repaired" {

@@ -73,6 +73,10 @@ Set `MULTICA_CODEX_BACKGROUND_CONTINUATION=1` in the **daemon's environment** be
 
 When a Codex turn ends with tracked terminal commands still running, Multica keeps the same run, working directory, and App Server process alive. It collects command completion events, including output and exit codes, and delivers them as tool output to a successor turn in the same thread. A failed command can therefore be investigated by the agent before the run ends. The daemon waits for events; it does not periodically invoke the model. Normal synchronous commands do not cause an extra turn.
 
+명령이 최종 답변보다 먼저 끝나도, 모델에게 실행 중인 `session_id`만 반환됐다면 완료 결과를 다음 턴에 전달합니다. 이를 구분하기 위해 App Server가 알려준 로컬 rollout 파일에서 현재 턴의 실제 도구 반환 기록을 확인합니다. 새 스레드와 기존 스레드 재개에 같은 경로를 사용하며, 이미 읽은 기록은 다시 처리하지 않습니다. 직접 `write_stdin` 호출이나 세션 ID를 명시한 단일 `tools.write_stdin` 코드 호출로 최종 결과를 회수했다면 별도 재개 대상에서 제외합니다. 동적 JavaScript나 여러 도구를 섞은 호출은 회수 여부를 단정하지 않으므로 추가 결과 전달이 발생할 수 있습니다.
+
+이 실험 기능은 로컬 rollout 경로와 Codex의 기록 형식에도 의존합니다. 턴 완료 기록의 저장 지연은 최대 2초까지 기다립니다. 경로 누락·기록 손상·읽기 실패·저장 시간 초과는 실행 실패로 보고하며 완료로 간주하지 않습니다. 디버그 로그의 `codex background command`에는 명령 ID와 추적·수집·제외 사유를 남기고, 명령문과 출력 내용은 기록하지 않습니다.
+
 This option applies only to native terminal commands observed during the current execution:
 
 - It does not manage native subagents, arbitrary detached shell jobs, or commands from earlier executions.

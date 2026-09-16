@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from "vitest";
 import {
   chatProjectContextSupported,
@@ -8,6 +9,14 @@ import {
 } from "./cli-version";
 
 describe("checkQuickCreateCliVersion", () => {
+  it("Shift 버전을 기반 릴리스로 검사하고 SHA만 있는 버전은 거부한다", () => {
+    expect(checkQuickCreateCliVersion("0.4.43+shift.affe37e3f744").state).toBe("ok");
+    expect(checkQuickCreateCliVersion("0.2.20+shift.affe37e3f744").state).toBe("too_old");
+    expect(checkQuickCreateCliVersion("shift-affe37e3f744").state).toBe("missing");
+    expect(checkQuickCreateFieldsCliVersion("0.4.43+shift.affe37e3f744").state).toBe("ok");
+    expect(chatProjectContextSupported("0.4.43+shift.affe37e3f744")).toBe(true);
+  });
+
   it("returns ok for a tagged release at or above the minimum", () => {
     expect(checkQuickCreateCliVersion("v0.2.21").state).toBe("ok");
     expect(checkQuickCreateCliVersion("0.3.1").state).toBe("ok");

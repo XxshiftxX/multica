@@ -18,13 +18,13 @@ import (
 // The fixture test pins the parser against a recorded stream; this one is what
 // catches the upstream protocol moving on (MUL-5231).
 func TestCursorRealStreamObservability(t *testing.T) {
-	requireRealAgentSmoke(t)
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 	path, err := exec.LookPath("cursor-agent")
 	if err != nil {
-		t.Skip("cursor-agent not on PATH; skipping real-binary smoke test")
+		t.Skip("cursor-agent not on PATH; skipping real CLI integration test")
 	}
 	if version, err := exec.Command(path, "--version").CombinedOutput(); err == nil {
 		t.Logf("cursor-agent CLI version: %s", strings.TrimSpace(string(version)))
@@ -86,7 +86,7 @@ func TestCursorRealStreamObservability(t *testing.T) {
 			t.Errorf("tool call id spans multiple lines: %q", msg.CallID)
 		}
 	}
-	t.Logf("real cursor smoke OK: thinking=%d bytes, tools=%v, output=%q",
+	t.Logf("real cursor integration test OK: thinking=%d bytes, tools=%v, output=%q",
 		thinking.Len(), toolNames(toolUses), result.Output)
 }
 

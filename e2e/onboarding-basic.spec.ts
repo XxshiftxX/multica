@@ -2,12 +2,10 @@ import { test, expect } from "@playwright/test";
 import { TestApiClient } from "./fixtures";
 import { waitForPageText } from "./helpers";
 
-// Smoke test for the onboarding flow: welcome → About you (role +
-// use case on ONE screen) → workspace → runtime. The source question
-// is intentionally absent — it moved to the workspace source-backfill
-// prompt (MUL-5159). Captures screenshots for review. Uses a unique
-// email per run so the user is always a fresh, un-onboarded user
-// landing on /onboarding.
+// 온보딩 기본 동작 테스트: 환영 화면 → 자기소개(역할과 용도를 한 화면에서 선택)
+// → 워크스페이스 → 런타임. 유입 경로 질문은 워크스페이스의 별도 입력 단계로
+// 이동했으므로 여기서는 표시하지 않는다(MUL-5159). 검토용 스크린샷을 저장하고,
+// 매번 고유한 이메일로 가입하여 온보딩을 완료하지 않은 신규 사용자로 시작한다.
 
 const EMAIL = `onboarding-v3-${Date.now()}@localhost`;
 const SHOTS_DIR = "../shots-rail";

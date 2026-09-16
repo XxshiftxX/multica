@@ -11,15 +11,15 @@ import (
 	"time"
 )
 
-// TestTraecliRealACPSmoke drives the real `traecli acp serve` binary end-to-end.
-func TestTraecliRealACPSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+// TestTraecliRealACP는 실제 `traecli acp serve` 실행 파일의 전체 연동 흐름을 검증한다.
+func TestTraecliRealACP(t *testing.T) {
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 	path, err := exec.LookPath("traecli")
 	if err != nil {
-		t.Skip("traecli not on PATH; skipping real-binary smoke test")
+		t.Skip("traecli not on PATH; skipping real CLI integration test")
 	}
 
 	backend, err := New("traecli", Config{ExecutablePath: path, Logger: slog.Default()})
@@ -52,7 +52,7 @@ func TestTraecliRealACPSmoke(t *testing.T) {
 		if result.SessionID == "" {
 			t.Error("expected a non-empty session id from real traecli")
 		}
-		t.Logf("real traecli smoke OK: session=%s output=%q", result.SessionID, result.Output)
+		t.Logf("real traecli integration test OK: session=%s output=%q", result.SessionID, result.Output)
 	case <-time.After(90 * time.Second):
 		t.Fatal("timeout waiting for real traecli result")
 	}

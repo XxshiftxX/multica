@@ -17,10 +17,9 @@
 // artifacts from a prior partial build) ships an app with missing
 // renderer code and white-screens on launch.
 //
-// Extra CLI args after `pnpm package --` are forwarded to electron-builder
-// unchanged (e.g. `--mac --arm64`). For an unsigned local smoke-test
-// build, set `CSC_IDENTITY_AUTO_DISCOVERY=false` so electron-builder falls
-// back to an ad-hoc signature instead of requiring a Developer ID cert.
+// `pnpm package --` 뒤의 인자는 electron-builder에 그대로 전달한다(예: `--mac --arm64`).
+// 로컬 기본 동작 확인용 빌드는 `CSC_IDENTITY_AUTO_DISCOVERY=false`로 설정하면
+// Developer ID 인증서 없이 임시 서명으로 패키징할 수 있다.
 //
 // The `normalizeGitVersion`, `deriveVersion`, and `DESCRIBE_ARGS` exports let
 // tests cover version derivation both as a pure string transform and as the

@@ -46,8 +46,8 @@ import (
 // listed as supported; live confirmation is pending. If the bootstrap
 // call returns a structured "app type not supported" error, this code
 // surfaces the code+msg directly so the Hub's backoff loop logs the
-// real reason instead of looping silently. The smoke test path is
-// `multica` -> register a PersonalAgent -> enable WS -> watch logs.
+// real reason instead of looping silently.
+// 기본 동작 확인 순서: `multica` → PersonalAgent 등록 → WS 활성화 → 로그 확인.
 type HTTPConnectionTokenFetcher struct {
 	cfg HTTPConnectionTokenConfig
 }

@@ -109,7 +109,8 @@ Workspace-scoped queries filter by `workspace_id`; membership gates access and `
 - E2E setup/teardown uses `TestApiClient`.
 - DB-backed Go tests use `server/internal/testutil` fixtures (`dbfx.Issue`, `dbfx.Task`, `dbfx.Insert`) and `testutil.Call(h, req).Want(status).JSON(&out)`. Keep product assertions and case-specific diagnostics in the test, not fixture helpers.
 - Default tests must not resolve or execute user-installed agent CLIs; pass test-created fake or missing executable paths. New default agent commands go in `scripts/agent-cli-command-names.txt`.
-- Only run real-agent smoke tests when explicitly authorized. Gate them behind `agentintegration` and check `MULTICA_RUN_REAL_AGENT_SMOKE=1` before executable lookup/account access. Run the specific test: `(cd server && MULTICA_RUN_REAL_AGENT_SMOKE=1 go test -tags=agentintegration ./pkg/agent -run '<test-name>' -count=1 -v)`.
+- 실제 에이전트 연동 테스트는 명시적으로 허가받은 경우에만 실행한다. `agentintegration` 빌드 태그로 분리하고, 실행 파일 탐색이나 계정 접근 전에 `MULTICA_RUN_REAL_AGENT_TESTS=1`을 확인한다. 실행할 테스트를 지정한다: `(cd server && MULTICA_RUN_REAL_AGENT_TESTS=1 go test -tags=agentintegration ./pkg/agent -run '<test-name>' -count=1 -v)`.
+- 테스트 이름과 설명은 검증 대상을 구체적으로 쓴다. 간단한 검증은 “기본 동작 테스트”, “빌드 확인”, “연동 테스트”처럼 이해하기 쉬운 표현을 사용한다.
 
 ## Change and Delivery Rules
 

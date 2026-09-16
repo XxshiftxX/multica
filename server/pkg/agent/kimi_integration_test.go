@@ -17,8 +17,8 @@ import (
 	"time"
 )
 
-// TestKimiRealACPUsageSmoke drives the real `kimi acp` binary end-to-end and
-// asserts the task comes back with a token split.
+// TestKimiRealACPUsage는 실제 `kimi acp` 연동 흐름을 실행하고
+// 작업 결과에 토큰별 사용량이 포함되는지 검증한다.
 //
 // This is the test that would have caught #6448 before it shipped: kimi-code
 // 0.33.0 reports no usage over ACP at all, so any fix validated only against a
@@ -26,16 +26,15 @@ import (
 //
 // The model matters: the CLI rejects thinking=off on some models with
 // `400 invalid thinking`, and a turn that dies there writes no usage record.
-// KIMI_SMOKE_MODEL overrides the default when the account's default model has
-// that constraint.
-func TestKimiRealACPUsageSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+// 계정의 기본 모델에 이 제약이 있으면 KIMI_TEST_MODEL로 테스트 모델을 지정한다.
+func TestKimiRealACPUsage(t *testing.T) {
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 	path, err := exec.LookPath("kimi")
 	if err != nil {
-		t.Skip("kimi not on PATH; skipping real-binary smoke test")
+		t.Skip("kimi not on PATH; skipping real CLI integration test")
 	}
 	if version, err := exec.Command(path, "--version").CombinedOutput(); err == nil {
 		t.Logf("kimi CLI version: %s", strings.TrimSpace(string(version)))
@@ -51,7 +50,7 @@ func TestKimiRealACPUsageSmoke(t *testing.T) {
 
 	session, err := backend.Execute(ctx, "Reply with exactly one word: alpha", ExecOptions{
 		Timeout: 150 * time.Second,
-		Model:   kimiSmokeModel(),
+		Model:   kimiTestModel(),
 	})
 	if err != nil {
 		t.Fatalf("execute: %v", err)
@@ -87,16 +86,15 @@ func TestKimiRealACPUsageSmoke(t *testing.T) {
 	}
 }
 
-func kimiSmokeModel() string {
-	if model := strings.TrimSpace(os.Getenv("KIMI_SMOKE_MODEL")); model != "" {
+func kimiTestModel() string {
+	if model := strings.TrimSpace(os.Getenv("KIMI_TEST_MODEL")); model != "" {
 		return model
 	}
 	return ""
 }
 
-// TestKimiRealMcpConfigReachesSessionSmoke drives the real `kimi acp` binary
-// through this package's own backend with a Multica-shaped agent.mcp_config
-// and asserts the server is actually connected and callable.
+// TestKimiRealMcpConfigReachesSession은 Multica 형식의 agent.mcp_config로
+// 이 패키지의 백엔드에서 실제 `kimi acp`를 실행하고 MCP 서버의 연결과 호출을 검증한다.
 //
 // Users reported that MCP configured in Multica "never reaches kimi", pointing
 // at the bare `kimi acp` launch line as evidence (MUL-5846). That line carries
@@ -105,17 +103,17 @@ func kimiSmokeModel() string {
 // The oracle is the MCP server process itself: it appends to a log when spawned
 // and returns a sentinel from its one tool, so neither a hand-written ACP
 // fixture nor the model's own description of its tools can fake a pass.
-func TestKimiRealMcpConfigReachesSessionSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+func TestKimiRealMcpConfigReachesSession(t *testing.T) {
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 	if runtime.GOOS == "windows" {
 		t.Skip("shell-script MCP fixture is POSIX-only")
 	}
 	path, err := exec.LookPath("kimi")
 	if err != nil {
-		t.Skip("kimi not on PATH; skipping real-binary smoke test")
+		t.Skip("kimi not on PATH; skipping real CLI integration test")
 	}
 	if version, err := exec.Command(path, "--version").CombinedOutput(); err == nil {
 		t.Logf("kimi CLI version: %s", strings.TrimSpace(string(version)))
@@ -141,7 +139,7 @@ func TestKimiRealMcpConfigReachesSessionSmoke(t *testing.T) {
 		ExecOptions{
 			Timeout:   210 * time.Second,
 			Cwd:       dir,
-			Model:     kimiSmokeModel(),
+			Model:     kimiTestModel(),
 			McpConfig: json.RawMessage(mcpConfig),
 		})
 	if err != nil {

@@ -14,31 +14,29 @@ import (
 	"time"
 )
 
-// TestQwenpawRealACPSmoke drives the real `qwenpaw acp` binary end-to-end.
+// TestQwenpawRealACP는 실제 `qwenpaw acp` 실행 파일의 전체 연동 흐름을 검증한다.
 //
 // It validates the full daemon contract against a live QwenPaw process:
 //   - `qwenpaw acp` starts and responds to ACP RPCs
 //   - session/new + session/prompt + session/load succeed
 //   - the --workspace flag is accepted (qwenpaw acp's workspace skill discovery)
 //
-// This test is gated by MULTICA_RUN_REAL_AGENT_SMOKE=1 and requires
-// `qwenpaw` on PATH. The RPCs it exercises are the ones the execution
-// path needs, all present since QwenPaw v2.0.1 (see qwenpaw.go for the
-// version contract).
+// MULTICA_RUN_REAL_AGENT_TESTS=1과 PATH의 `qwenpaw`가 필요하다.
+// 실행 경로에 필요한 RPC는 모두 QwenPaw v2.0.1부터 지원한다(qwenpaw.go 참고).
 //
 // NOTE: model override via session/set_model is deliberately not attempted;
 // QwenPaw does not support it, and the backend declares model override
 // unsupported.
-func TestQwenpawRealACPSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+func TestQwenpawRealACP(t *testing.T) {
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 
 	// Discover `qwenpaw` binary on PATH.
 	path, err := exec.LookPath("qwenpaw")
 	if err != nil {
-		t.Skip("qwenpaw not on PATH; skipping real-binary smoke test")
+		t.Skip("qwenpaw not on PATH; skipping real CLI integration test")
 	}
 
 	// Log CLI version.
@@ -90,7 +88,7 @@ func TestQwenpawRealACPSmoke(t *testing.T) {
 			t.Error("expected a non-empty session id from real qwenpaw")
 		}
 		sessionID = result.SessionID
-		t.Logf("real qwenpaw smoke OK: session=%s output=%q", result.SessionID, result.Output)
+		t.Logf("real qwenpaw integration test OK: session=%s output=%q", result.SessionID, result.Output)
 
 	case <-time.After(90 * time.Second):
 		t.Fatal("timeout waiting for real qwenpaw result")
@@ -156,14 +154,14 @@ func TestQwenpawRealACPSmoke(t *testing.T) {
 // the marker appears in the output — proving the skill was loaded and
 // effective, not just written to disk.
 func TestQwenpawRealWorkspaceSkill(t *testing.T) {
-	requireRealAgentSmoke(t)
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 
 	path, err := exec.LookPath("qwenpaw")
 	if err != nil {
-		t.Skip("qwenpaw not on PATH; skipping real-binary smoke test")
+		t.Skip("qwenpaw not on PATH; skipping real CLI integration test")
 	}
 
 	// Build a per-task workspace with a skill in skills/.
@@ -251,7 +249,7 @@ func TestQwenpawRealWorkspaceSkill(t *testing.T) {
 		if !strings.Contains(result.Output, "SKILL-MARKER-OK") {
 			t.Fatalf("expected output to contain 'SKILL-MARKER-OK' (skill not loaded?), got %q", result.Output)
 		}
-		t.Logf("real qwenpaw skill smoke OK: output=%q", result.Output)
+		t.Logf("real qwenpaw skill integration test OK: output=%q", result.Output)
 	case <-time.After(90 * time.Second):
 		t.Fatal("timeout waiting for real qwenpaw skill result")
 	}

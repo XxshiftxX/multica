@@ -13,18 +13,18 @@ import (
 	"time"
 )
 
-// TestMcodeRealACPContextAndToolSmoke drives an authenticated MiniMax Code ACP
-// turn end-to-end. Workspace canaries exercise cwd-scoped instructions, project
-// skill lookup, file access, and ACP tool event forwarding together.
-func TestMcodeRealACPContextAndToolSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+// TestMcodeRealACPContextAndTool은 인증된 MiniMax Code ACP 턴의 전체 흐름을 검증한다.
+// 워크스페이스의 확인용 데이터로 작업 디렉터리 지침, 프로젝트 스킬 탐색,
+// 파일 접근과 ACP 도구 이벤트 전달을 함께 확인한다.
+func TestMcodeRealACPContextAndTool(t *testing.T) {
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 
 	path, err := exec.LookPath("mcode")
 	if err != nil {
-		t.Skip("mcode not on PATH; skipping real-binary smoke test")
+		t.Skip("mcode not on PATH; skipping real CLI integration test")
 	}
 	if version, err := exec.Command(path, "--version").CombinedOutput(); err == nil {
 		t.Logf("mcode --version: %s", strings.TrimSpace(string(version)))
@@ -33,19 +33,19 @@ func TestMcodeRealACPContextAndToolSmoke(t *testing.T) {
 	}
 
 	workDir := t.TempDir()
-	writeMcodeSmokeFile(t, filepath.Join(workDir, "AGENTS.md"), `# Multica smoke context
+	writeMcodeTestFile(t, filepath.Join(workDir, "AGENTS.md"), `# Multica 연동 테스트 컨텍스트
 
 For every response in this workspace, include the exact marker AGENTS-MCODE-OK.
 `)
-	writeMcodeSmokeFile(t, filepath.Join(workDir, ".minimax", "skills", "multica-smoke", "SKILL.md"), `---
-name: multica-smoke
-description: Use when asked to run the Multica MiniMax Code integration smoke.
+	writeMcodeTestFile(t, filepath.Join(workDir, ".minimax", "skills", "multica-integration-test", "SKILL.md"), `---
+name: multica-integration-test
+description: Use when asked to run the Multica MiniMax Code integration test.
 ---
-# Multica smoke skill
+# Multica 연동 테스트 스킬
 
 Read tool-canary.txt with a file-reading tool. Include the exact marker SKILL-MCODE-OK and the file contents in the final response.
 `)
-	writeMcodeSmokeFile(t, filepath.Join(workDir, "tool-canary.txt"), "TOOL-MCODE-OK\n")
+	writeMcodeTestFile(t, filepath.Join(workDir, "tool-canary.txt"), "TOOL-MCODE-OK\n")
 
 	backend, err := New("mcode", Config{ExecutablePath: path, Logger: slog.Default()})
 	if err != nil {
@@ -55,7 +55,7 @@ Read tool-canary.txt with a file-reading tool. Include the exact marker SKILL-MC
 	defer cancel()
 
 	session, err := backend.Execute(ctx,
-		"Run the multica-smoke skill. Follow the workspace instructions and return its requested evidence.",
+		"Run the multica-integration-test skill. Follow the workspace instructions and return its requested evidence.",
 		ExecOptions{Cwd: workDir, Timeout: 210 * time.Second},
 	)
 	if err != nil {
@@ -102,10 +102,10 @@ Read tool-canary.txt with a file-reading tool. Include the exact marker SKILL-MC
 	if result.SessionID == "" {
 		t.Fatal("real mcode run returned an empty session id")
 	}
-	t.Logf("real mcode smoke OK: session=%s tools=%d/%d output=%q", result.SessionID, toolUses, toolResults, result.Output)
+	t.Logf("real mcode integration test OK: session=%s tools=%d/%d output=%q", result.SessionID, toolUses, toolResults, result.Output)
 }
 
-func writeMcodeSmokeFile(t *testing.T, path, content string) {
+func writeMcodeTestFile(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatalf("create %s parent: %v", path, err)

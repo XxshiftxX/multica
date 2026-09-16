@@ -486,8 +486,8 @@ func TestRedisLocalSkillImportStore_PopPendingAcrossInstances(t *testing.T) {
 	}
 }
 
-// Smoke test: make sure the runtime-local-skill store keys don't collide
-// across runtimes — PopPending for runtime A must not see B's pending.
+// 런타임별 로컬 스킬 저장 키가 충돌하지 않는지 확인한다.
+// 런타임 A의 PopPending에 런타임 B의 대기 항목이 포함되면 안 된다.
 func TestRedisLocalSkillListStore_PerRuntimeIsolation(t *testing.T) {
 	rdb := newRedisTestClient(t)
 	ctx := context.Background()

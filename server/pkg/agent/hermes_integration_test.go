@@ -11,16 +11,16 @@ import (
 	"time"
 )
 
-// TestHermesRealACPUsageSmoke drives the real `hermes acp` binary end-to-end
-// and verifies its metering survives the shared ACP reconciliation path.
-func TestHermesRealACPUsageSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+// TestHermesRealACPUsage는 실제 `hermes acp` 연동 흐름을 실행하고
+// 공통 ACP 사용량 조정 과정에서도 사용량 정보가 유지되는지 검증한다.
+func TestHermesRealACPUsage(t *testing.T) {
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 	path, err := exec.LookPath("hermes")
 	if err != nil {
-		t.Skip("hermes not on PATH; skipping real-binary smoke test")
+		t.Skip("hermes not on PATH; skipping real CLI integration test")
 	}
 	if version, err := exec.Command(path, "--version").CombinedOutput(); err == nil {
 		t.Logf("hermes CLI version: %s", strings.TrimSpace(string(version)))

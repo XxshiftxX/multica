@@ -17,11 +17,11 @@ import (
 
 func realOpenclawBin(t *testing.T) string {
 	t.Helper()
-	if os.Getenv("MULTICA_RUN_REAL_AGENT_SMOKE") != "1" {
-		t.Skip("set MULTICA_RUN_REAL_AGENT_SMOKE=1 to allow real agent CLI access")
+	if os.Getenv("MULTICA_RUN_REAL_AGENT_TESTS") != "1" {
+		t.Skip("set MULTICA_RUN_REAL_AGENT_TESTS=1 to allow real agent CLI access")
 	}
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 
 	bin := os.Getenv("MULTICA_REAL_OPENCLAW_BIN")
@@ -29,7 +29,7 @@ func realOpenclawBin(t *testing.T) string {
 		var err error
 		bin, err = exec.LookPath("openclaw")
 		if err != nil {
-			t.Skip("openclaw not on PATH; skipping real-binary smoke test")
+			t.Skip("openclaw not on PATH; skipping real CLI integration test")
 		}
 	}
 	return bin
@@ -46,11 +46,11 @@ func TestOpenclawDaemonEquivalentRealTask(t *testing.T) {
 		WorkspacesRoot: t.TempDir(),
 		WorkspaceID:    "00000000-0000-4000-8000-000000000001",
 		TaskID:         "00000000-0000-4000-8000-000000000002",
-		AgentName:      "openclaw-real-smoke",
+		AgentName:      "openclaw-real-test",
 		Provider:       "openclaw",
 		OpenclawBin:    bin,
 		Task: TaskContextForEnv{
-			IssueID: "openclaw-real-smoke",
+			IssueID: "openclaw-real-test",
 		},
 	}, logger)
 	if err != nil {

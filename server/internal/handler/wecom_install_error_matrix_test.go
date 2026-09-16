@@ -39,7 +39,7 @@ func TestWecomInstallErrorMatrix(t *testing.T) {
 		err        error
 		wantStatus int
 		wantCode   string
-		// wantError is the exact sentence, not a smoke check that one exists.
+		// wantError는 오류 메시지의 존재 여부뿐 아니라 정확한 문구를 검증한다.
 		// It is what a client too old to know the codes shows the admin, so it
 		// is as much a part of the contract as the status: an outcome that
 		// keeps its status and code but picks up a neighbour's sentence still

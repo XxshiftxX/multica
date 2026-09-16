@@ -28,11 +28,9 @@ var qwenpawBlockedArgs = map[string]blockedArgMode{
 // Hermes/Kimi/Kiro/Traecli use, so we reuse the hermesClient ACP
 // transport — only the binary, env, and tool-name extraction differ.
 //
-// Minimum supported QwenPaw version: v2.0.1 (the current stable release).
-// Every ACP feature the execution path below relies on is present there;
-// see TestQwenpawRealACPSmoke for the integration check. The code targets
-// the v2.0 ACP API surface — v1.x speaks a different protocol and is not
-// supported.
+// 최소 지원 QwenPaw 버전은 v2.0.1이다. 이 실행 경로에 필요한 ACP 기능은
+// TestQwenpawRealACP 연동 테스트로 확인한다. v2.0 ACP API를 대상으로 하며
+// 프로토콜이 다른 v1.x는 지원하지 않는다.
 //
 // Notable contract with QwenPaw v2.0.1:
 //   - `session/new` and `session/load` accept `_meta["qwenpaw.coding_project_dir"]`

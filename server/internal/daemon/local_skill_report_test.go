@@ -146,9 +146,8 @@ func TestReportLocalSkillResult_SendsCorrectPath(t *testing.T) {
 
 	var listPath, importPath string
 	d, _ := localSkillReportDaemon(t, func(w http.ResponseWriter, r *http.Request) {
-		// Smoke: make sure we're hitting the right daemon-side endpoint.
-		// Protects against a future refactor silently pointing reports at
-		// the wrong URL.
+		// 보고 요청이 올바른 데몬 엔드포인트로 전송되는지 확인한다.
+		// 리팩터링 후 잘못된 URL로 전송되는 회귀를 방지한다.
 		if strings.Contains(r.URL.Path, "/import/") {
 			importPath = r.URL.Path
 		} else {

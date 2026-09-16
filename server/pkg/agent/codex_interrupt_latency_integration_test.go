@@ -67,7 +67,7 @@ func (b *synchronizedBuffer) String() string {
 //
 // Run it explicitly with:
 //
-//	MULTICA_RUN_REAL_AGENT_SMOKE=1 go test -tags=agentintegration ./pkg/agent \
+//	MULTICA_RUN_REAL_AGENT_TESTS=1 go test -tags=agentintegration ./pkg/agent \
 //	  -run TestCodexRealTurnInterruptLatency -count=1 -v
 //
 // MULTICA_CODEX_INTERRUPT_SAMPLES and MULTICA_CODEX_INTERRUPT_WARMUPS control
@@ -76,7 +76,7 @@ func (b *synchronizedBuffer) String() string {
 // MULTICA_CODEX_INTERRUPT_SETTLE_DELAY controls how long generation continues
 // after its first observed agent-message delta before cancellation.
 func TestCodexRealTurnInterruptLatency(t *testing.T) {
-	requireRealAgentSmoke(t)
+	requireRealAgentTest(t)
 	if testing.Short() {
 		t.Skip("skipping real-binary interrupt latency test in -short mode")
 	}

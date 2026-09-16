@@ -11,9 +11,9 @@ import (
 	"time"
 )
 
-func TestCodeArtsRealSmoke(t *testing.T) {
-	if os.Getenv("MULTICA_RUN_REAL_AGENT_SMOKE") != "1" {
-		t.Skip("set MULTICA_RUN_REAL_AGENT_SMOKE=1 to run an authenticated CodeArts smoke test")
+func TestCodeArtsReal(t *testing.T) {
+	if os.Getenv("MULTICA_RUN_REAL_AGENT_TESTS") != "1" {
+		t.Skip("set MULTICA_RUN_REAL_AGENT_TESTS=1 to run an authenticated CodeArts integration test")
 	}
 
 	backend, err := ResolveBackend("codearts", Config{
@@ -26,7 +26,7 @@ func TestCodeArtsRealSmoke(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
-	session, err := backend.Execute(ctx, "Reply with exactly CODEARTS_SMOKE_OK and nothing else.", ExecOptions{
+	session, err := backend.Execute(ctx, "Reply with exactly CODEARTS_TEST_OK and nothing else.", ExecOptions{
 		Cwd:     t.TempDir(),
 		Model:   os.Getenv("MULTICA_CODEARTS_MODEL"),
 		Timeout: 2 * time.Minute,
@@ -43,7 +43,7 @@ func TestCodeArtsRealSmoke(t *testing.T) {
 	if result.Status != "completed" {
 		t.Fatalf("status = %q, error = %q, output = %q", result.Status, result.Error, result.Output)
 	}
-	if !strings.Contains(result.Output, "CODEARTS_SMOKE_OK") {
+	if !strings.Contains(result.Output, "CODEARTS_TEST_OK") {
 		t.Fatalf("unexpected output: %q", result.Output)
 	}
 }

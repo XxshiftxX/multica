@@ -6439,8 +6439,9 @@ func providerDisplayName(name string) string {
 // and no inline delivery: claude 2.1.220 (CLAUDE.md), codex 0.144.6 driving the
 // app-server (AGENTS.md), opencode 1.17.7 (AGENTS.md), pi 0.67.2 (AGENTS.md),
 // hermes 0.18.2 over ACP (AGENTS.md). MCode 0.1.2 also loads AGENTS.md by its
-// native runtime contract. kiro was confirmed earlier by a kiro-cli
-// 2.13.0 ACP smoke — see the call site. Still unprobed: grok, qoder, codebuddy.
+// native runtime contract.
+// Kiro는 kiro-cli 2.13.0 ACP 기본 동작 테스트로 확인했다(호출부 참고).
+// 아직 확인하지 않은 공급자: grok, qoder, codebuddy.
 func providerNeedsInlineSystemPrompt(provider string) bool {
 	switch provider {
 	case "openclaw", "kimi", "traecli", "qwenpaw":
@@ -8621,11 +8622,9 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	// `multica issue status` / `multica issue comment add`, leaving issues
 	// stuck in `todo`.
 	//
-	// Hermes and Kiro are intentionally excluded: their ACP sessions start in
-	// the task cwd and load AGENTS.md themselves. Kiro documents root AGENTS.md
-	// as always included, and a real kiro-cli 2.13.0 ACP smoke confirms it.
-	// Prepending the full runtime brief into the ACP user prompt duplicates that
-	// context and bloats every turn.
+	// Hermes와 Kiro의 ACP 세션은 작업 디렉터리에서 시작해 AGENTS.md를 직접 읽으므로 제외한다.
+	// Kiro는 루트 AGENTS.md를 항상 포함한다고 명시하며 kiro-cli 2.13.0 ACP 연동 테스트로 확인했다.
+	// 전체 런타임 안내를 ACP 사용자 프롬프트에 추가하면 매 턴 같은 컨텍스트가 중복된다.
 	if providerNeedsInlineSystemPrompt(provider) {
 		execOpts.SystemPrompt = runtimeBrief
 	}

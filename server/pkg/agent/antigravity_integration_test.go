@@ -15,9 +15,9 @@ import (
 // binary's wire contract and, importantly, that a resumed execution reports
 // only that execution's completed-step usage to Multica.
 func TestAntigravityRealResumedUsageIsPerExecution(t *testing.T) {
-	requireRealAgentSmoke(t)
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 	execPath, err := exec.LookPath("agy")
 	if err != nil {

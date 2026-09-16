@@ -57,8 +57,8 @@ import (
 // apps are not listed as supported. If the bootstrap call returns a
 // structured error from Lark, this connector exits Run with the error
 // wrapped and the Hub's backoff loop logs it on every retry — making
-// the misconfiguration visible. See MUL-2671 review thread for the
-// smoke-test path.
+// the misconfiguration visible.
+// 기본 동작 확인 절차는 MUL-2671 리뷰 스레드를 참고한다.
 type WSLongConnConnector struct {
 	cfg WSConnectorConfig
 }

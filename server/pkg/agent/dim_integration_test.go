@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// TestDimRealACPSmoke drives the real `dim acp` binary end-to-end.
+// TestDimRealACP는 실제 `dim acp` 실행 파일의 전체 연동 흐름을 검증한다.
 //
 // It validates the full daemon contract against a live Dim (dimcode) process:
 //   - `dim acp` starts and responds to ACP RPCs (initialize, session/new)
@@ -23,19 +23,18 @@ import (
 //     permission (the whole point of raising permission from the read-only
 //     default) — a sentinel file is written and read back
 //
-// This test is gated by MULTICA_RUN_REAL_AGENT_SMOKE=1 and requires `dim`
-// on PATH with an active Dim OAuth login. The RPCs it exercises are the ones
-// the execution path needs, verified against dimcode 0.3.10.
-func TestDimRealACPSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+// MULTICA_RUN_REAL_AGENT_TESTS=1, PATH의 `dim`, 유효한 Dim OAuth 로그인이 필요하다.
+// 실행 경로에 필요한 RPC를 검증하며 dimcode 0.3.10에서 확인했다.
+func TestDimRealACP(t *testing.T) {
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 
 	// Discover `dim` binary on PATH.
 	path, err := exec.LookPath("dim")
 	if err != nil {
-		t.Skip("dim not on PATH; skipping real-binary smoke test")
+		t.Skip("dim not on PATH; skipping real CLI integration test")
 	}
 
 	// Log CLI version.
@@ -97,7 +96,7 @@ func TestDimRealACPSmoke(t *testing.T) {
 		if !strings.Contains(string(data), "dim-exec-ok") {
 			t.Fatalf("sentinel file content unexpected: %q", string(data))
 		}
-		t.Logf("real dim smoke OK: session=%s output=%q sentinel=%q", result.SessionID, result.Output, strings.TrimSpace(string(data)))
+		t.Logf("real dim integration test OK: session=%s output=%q sentinel=%q", result.SessionID, result.Output, strings.TrimSpace(string(data)))
 
 	case <-time.After(120 * time.Second):
 		t.Fatal("timeout waiting for real dim result")
@@ -112,17 +111,16 @@ func TestDimRealACPSmoke(t *testing.T) {
 //
 // dim 0.3.10+ releases its per-process session lock within ~5s of the owning
 // process exiting, so the resume succeeds once run A's process has torn down.
-// Gated by MULTICA_RUN_REAL_AGENT_SMOKE=1 and requires `dim` on PATH with an
-// active Dim OAuth login.
+// MULTICA_RUN_REAL_AGENT_TESTS=1, PATH의 `dim`, 유효한 Dim OAuth 로그인이 필요하다.
 func TestDimRealCrossRunResume(t *testing.T) {
-	requireRealAgentSmoke(t)
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 
 	path, err := exec.LookPath("dim")
 	if err != nil {
-		t.Skip("dim not on PATH; skipping real-binary smoke test")
+		t.Skip("dim not on PATH; skipping real CLI integration test")
 	}
 
 	backend, err := New("dim", Config{

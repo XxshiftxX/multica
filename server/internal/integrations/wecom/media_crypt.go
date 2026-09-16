@@ -29,8 +29,9 @@ const mediaAESKeyBytes = 32
 // block size, and that gap is the trap: AES works in 16-byte blocks, so a
 // PKCS#7 unpadder written against the cipher rejects any pad longer than 16 —
 // and a file whose length is already a multiple of 32 is padded with a whole
-// 32-byte block. Ordinary payloads land there often enough that such an
-// unpadder looks fine in a smoke test and fails in production.
+// 32-byte block.
+// 이런 길이의 데이터는 흔하므로, 기본 동작 테스트만 통과한 패딩 제거 코드가
+// 실제 운영에서는 실패할 수 있다.
 const mediaPadBlock = 32
 
 // decryptMedia turns one downloaded body back into the file the user sent.

@@ -53,9 +53,8 @@ func TestReportModelListResult_DoesNotRetryOn4xx(t *testing.T) {
 	}
 }
 
-// TestReportModelListResult_SendsCorrectPath smoke-tests the URL the daemon
-// posts to, so a future client refactor doesn't silently aim reports at the
-// wrong endpoint.
+// TestReportModelListResult_SendsCorrectPath는 데몬의 보고 URL을 확인하여
+// 클라이언트 리팩터링 후 잘못된 엔드포인트로 전송되는 회귀를 방지한다.
 func TestReportModelListResult_SendsCorrectPath(t *testing.T) {
 	withFastLocalSkillReportBackoffs(t)
 

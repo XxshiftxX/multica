@@ -11,15 +11,15 @@ import (
 	"time"
 )
 
-// TestGrokRealACPSmoke drives the real `grok agent stdio` binary end-to-end.
-func TestGrokRealACPSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+// TestGrokRealACP는 실제 `grok agent stdio` 실행 파일의 전체 연동 흐름을 검증한다.
+func TestGrokRealACP(t *testing.T) {
+	requireRealAgentTest(t)
 	if testing.Short() {
-		t.Skip("skipping real-binary smoke test in -short mode")
+		t.Skip("skipping real CLI integration test in -short mode")
 	}
 	path, err := exec.LookPath("grok")
 	if err != nil {
-		t.Skip("grok not on PATH; skipping real-binary smoke test")
+		t.Skip("grok not on PATH; skipping real CLI integration test")
 	}
 	if version, err := exec.Command(path, "--version").CombinedOutput(); err == nil {
 		t.Logf("grok CLI version: %s", strings.TrimSpace(string(version)))
@@ -57,7 +57,7 @@ func TestGrokRealACPSmoke(t *testing.T) {
 		if result.SessionID == "" {
 			t.Error("expected a non-empty session id from real grok")
 		}
-		t.Logf("real grok smoke OK: session=%s output=%q", result.SessionID, result.Output)
+		t.Logf("real grok integration test OK: session=%s output=%q", result.SessionID, result.Output)
 	case <-time.After(90 * time.Second):
 		t.Fatal("timeout waiting for real grok result")
 	}

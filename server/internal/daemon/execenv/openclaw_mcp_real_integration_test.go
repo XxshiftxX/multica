@@ -12,9 +12,8 @@ import (
 	"testing"
 )
 
-// Real-CLI coverage for the managed-MCP include chain. Opt-in twice over: the
-// agentintegration build tag, and MULTICA_RUN_REAL_AGENT_SMOKE, because this
-// executes the openclaw binary installed on the host.
+// 실제 CLI로 관리형 MCP의 include 연결을 검증한다. 호스트의 openclaw를 실행하므로
+// agentintegration 빌드 태그와 MULTICA_RUN_REAL_AGENT_TESTS를 모두 지정해야 한다.
 //
 // The unit tests assert the JSON this package writes. That is not enough for a
 // design whose correctness lives in OpenClaw's include-merge semantics — ordered
@@ -35,8 +34,7 @@ import (
 // into the resolved server map on all three channels. Without that, a green test
 // could equally mean "the wrapper's own block happened to win".
 //
-// The OpenClaw config compatibility smoke workflow keeps those three moving
-// channels under scheduled and manually dispatched coverage.
+// OpenClaw 설정 호환성 테스트 워크플로는 이 세 채널을 정기 실행과 수동 실행으로 검증한다.
 //
 // realOpenclawBin — the opt-in gate and binary lookup — is shared with
 // openclaw_real_integration_test.go.
@@ -47,9 +45,9 @@ import (
 // A list of candidates rather than one hard-coded key, because the `mcp` schema
 // is not the same across the channels this runs against: 2026.8.1-beta.3 declares
 // `mcp` as exactly `servers` + `apps` with additionalProperties:false, while
-// `sessionIdleTtlMs` is accepted on the older channels. Hard-coding either one
-// turns a schema difference into a red smoke run that says nothing about this
-// change. So the fixture asks the CLI which shape it accepts.
+// `sessionIdleTtlMs` is accepted on the older channels.
+// 한 형식으로 고정하면 이 변경과 무관한 스키마 차이로 연동 테스트가 실패한다.
+// 따라서 픽스처는 CLI가 허용하는 형식을 확인한다.
 type mcpSibling struct {
 	key      string
 	fragment string

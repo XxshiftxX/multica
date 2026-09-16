@@ -58,6 +58,9 @@ func TestCheckMinCLIVersion(t *testing.T) {
 		input   string
 		wantErr error
 	}{
+		{"Shift 기반 버전 확인", "0.4.43+shift.affe37e3f744", nil},
+		{"Shift 구버전 거부", "0.2.20+shift.affe37e3f744", ErrCLIVersionTooOld},
+		{"Shift SHA 버전 거부", "shift-affe37e3f744", ErrCLIVersionMissing},
 		{"tagged release at minimum", "v0.2.21", nil},
 		{"tagged release above minimum", "0.3.1", nil},
 		{"previous tagged release below minimum", "v0.2.20", ErrCLIVersionTooOld},

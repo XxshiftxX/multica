@@ -7,9 +7,16 @@
 
 - backend·web: linux/amd64, linux/arm64 GHCR 이미지
 - CLI·데몬: Linux/macOS의 amd64, arm64 archive와 SHA-256 체크섬
-- `release.json`: 커밋, 이미지 digest, 빌드 실행 URL
+- `release.json`: 표시 버전(`version`), upstream 기반 버전(`upstream_version`), 커밋, 이미지 digest, 빌드 실행 URL
 
-`shift-<전체 commit SHA>` 태그로 버전을 구분한다. 모든 Go 테스트와 이미지·CLI 빌드가
+배포 태그는 `shift-<전체 commit SHA>`를 유지한다. CLI·서버·웹 표시 버전은
+`0.4.43+shift.affe37e3f744`처럼 upstream 기반 버전과 포크 커밋을 함께 담는다.
+`scripts/shift/version.sh`가 해당 커밋에서 도달 가능한 가장 가까운 정식 `vX.Y.Z`
+태그를 선택한다. 이는 upstream의 최신 버전이 아니라 실제 포함된 릴리스 기준이다.
+CI는 전체 이력과 태그를 가져오며, 기반 태그를 찾지 못하면 빌드를 중단한다.
+SHA만으로는 CLI 최소 버전 검사를 통과할 수 없으므로 이 형식을 모든 빌드에 동일하게 적용한다.
+
+모든 Go 테스트와 이미지·CLI 빌드가
 성공한 뒤 릴리스를 공개한다. 이미지 빌드 중 실패하면 digest만 남을 수 있지만 배포
 릴리스에는 포함되지 않는다. 최초 구성 검증용 `shift/deployment-pipeline` 브랜치는
 prerelease만 발행한다. 다른 브랜치의 수동 실행도 prerelease다.

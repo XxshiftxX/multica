@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-revision=$(git rev-parse HEAD)
+source scripts/shift/version.sh
 build_date=$(git show -s --format=%cI HEAD)
 mkdir -p dist/shift
 for target_os in linux darwin; do
@@ -11,7 +11,7 @@ for target_os in linux darwin; do
     (
       cd server
       CGO_ENABLED=0 GOOS="$target_os" GOARCH="$target_arch" go build -trimpath \
-        -ldflags "-s -w -X main.version=shift-${revision} -X main.commit=${revision} -X main.date=${build_date}" \
+        -ldflags "-s -w -X main.version=${version} -X main.commit=${revision} -X main.date=${build_date}" \
         -o "$staging/multica" ./cmd/multica
     )
     cp LICENSE NOTICE "$staging/"

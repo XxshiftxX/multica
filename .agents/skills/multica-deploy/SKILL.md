@@ -14,7 +14,8 @@ description: Shift Multica 포크를 빌드·릴리스하고 shift-infra의 GitO
 
 - 소스: `XxshiftxX/multica`, 보통 `~/workspaces/multica`.
 - Production 선언: `XxshiftxX/shift-infra`의 `k3s/apps/web-apps/overlays/production/`.
-- 릴리스: `shift-<40자리 source commit SHA>`. `release.json`에 backend·web digest가 있다.
+- 릴리스: `shift-<40자리 source commit SHA>`. `release.json`에 backend·web digest와 `version`, `upstream_version`이 있다.
+  실행 버전은 `<upstream 버전>+shift.<12자리 SHA>`이며 배포 태그와 구분한다.
 - 데몬: 개발 서버의 사용자 `multica-daemon.service`, 바이너리는 `~/.local/bin/multica`.
 - 공개 서비스: `https://multica.shiftryu.com`.
 
@@ -116,7 +117,7 @@ health 포트는 기본 profile 기준이다. 다른 profile이나 머신을 요
 `MULTICA_DAEMON_AUTO_UPDATE=false`를 설정해 upstream 자동 업데이트를 끈다.
 `multica update`는 upstream을 참조하므로 포크 업그레이드에 사용하지 않는다.
 
-교체 후 systemd active, health의 `status=running`, 요청한 `cli_version`, 대상 서버와
+교체 후 systemd active, health의 `status=running`, 릴리스 manifest의 `version`과 일치하는 `cli_version`, 대상 서버와
 runtime 등록을 확인한다. Secret이나 전체 process environment를 출력하지 않는다.
 
 ## 완료 보고와 실패 처리

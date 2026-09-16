@@ -648,6 +648,20 @@ func TestLoadConfig_AutoUpdateDefault_SelfHostOff(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_CodexBackgroundContinuation(t *testing.T) {
+	stageFakeAgent(t)
+	for _, value := range []string{"", "1", "false"} {
+		t.Setenv("MULTICA_CODEX_BACKGROUND_CONTINUATION", value)
+		cfg, err := LoadConfig(Overrides{ServerURL: "http://localhost:8080", WorkspacesRoot: t.TempDir()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.CodexBackgroundContinuation != (value == "1") {
+			t.Fatalf("value=%q continuation=%v", value, cfg.CodexBackgroundContinuation)
+		}
+	}
+}
+
 func TestLoadConfig_CodexHandshakeTimeout(t *testing.T) {
 	stageFakeAgent(t)
 	t.Setenv("MULTICA_CODEX_HANDSHAKE_TIMEOUT", "")

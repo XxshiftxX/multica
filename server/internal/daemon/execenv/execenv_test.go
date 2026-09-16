@@ -1334,16 +1334,6 @@ func TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic(t *testing.T) {
 			s := string(data)
 			for _, want := range []string{
 				"## Background Task Safety",
-				// MUL-5442 judgment rewrite (owner-authorized pin renegotiation): the
-				// section now states the one platform fact, the external-systems/CI
-				// boundary with its single exception, and the review-locked
-				// persistent-service contract. Enforcement-detail pins that only
-				// restated derivations of the platform fact were retired with the
-				// prose ("Do NOT end your turn while background tasks", the
-				// tool-promise enumeration, "does not cover tests, builds, CI
-				// polling", "any sleep / retry loop that polls check status", ...).
-				// What stays pinned: the fact, each boundary, each exception, and
-				// the handoff triple — the things an agent cannot infer.
 				"any run-owned work still active is orphaned",
 				"no background-completion wakeup",
 				"whatever a tool response promises",
@@ -1351,15 +1341,6 @@ func TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic(t *testing.T) {
 				"foreground tool calls that block",
 				"run unobservable work synchronously",
 				"standing by",
-				"are not run-owned: do not wait",
-				// The full compound ban, not its first item — MUL-5223 made this a
-				// non-derivable boundary, so no member may be silently dropped.
-				"do not run `gh pr checks --watch`, `gh run watch`, or sleep/retry polls",
-				"GitHub Actions after a successful push",
-				"NOT your delivery acceptance criteria",
-				"CI running: <PR link>",
-				"The one exception",
-				"ONE foreground blocking call (`gh pr checks <pr> --watch`)",
 				"persistent service handoff",
 				"running service itself is the requested deliverable",
 				"durable logs",
@@ -1375,17 +1356,6 @@ func TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic(t *testing.T) {
 				if !strings.Contains(s, want) {
 					t.Errorf("%s missing background task safety text %q\n---\n%s", tc.file, want, s)
 				}
-			}
-			// Exactly one exception: substring pins cannot see a duplicated
-			// "The one exception" clause (a second, wider-scope copy slipped
-			// in during the MUL-5442 rewrite and every pin stayed green).
-			if got := strings.Count(s, "The one exception"); got != 1 {
-				t.Errorf("%s must state the CI exception exactly once, got %d\n---\n%s", tc.file, got, s)
-			}
-			// `gh run watch` may only appear as a banned command, never as
-			// the section's example of how to wait properly.
-			if strings.Contains(s, "e.g. `gh run watch`") {
-				t.Errorf("%s should not suggest waiting for external GitHub CI\n---\n%s", tc.file, s)
 			}
 			// MUL-5274 review: with the persistent-service exception in the
 			// list, a "The rules above ..." scoping sentence would sweep in

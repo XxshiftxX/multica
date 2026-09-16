@@ -67,6 +67,22 @@ When a runtime is offline:
 
 Detailed states and retry rules are in [Runs](/tasks).
 
+### Codex background command continuation (experimental)
+
+Set `MULTICA_CODEX_BACKGROUND_CONTINUATION=1` in the **daemon's environment** before starting it to enable continuation after native Codex background terminal commands finish. The default is off. This requires Codex App Server support for `turn/start.toolOutput`; it has been verified with Codex CLI 0.154.0.
+
+When a Codex turn ends with tracked terminal commands still running, Multica keeps the same run, working directory, and App Server process alive. It collects command completion events, including output and exit codes, and delivers them as tool output to a successor turn in the same thread. A failed command can therefore be investigated by the agent before the run ends. The daemon waits for events; it does not periodically invoke the model. Normal synchronous commands do not cause an extra turn.
+
+This option applies only to native terminal commands observed during the current execution:
+
+- It does not manage native subagents, arbitrary detached shell jobs, or commands from earlier executions.
+- It does not survive daemon or App Server restarts. Conversation persistence does not preserve running processes.
+- The run continues occupying its concurrency slot and working-directory lock while it waits. Stop the run to cancel it; configured run and tool watchdog limits still apply. The Codex model-inactivity timer is suspended while the backend awaits registered commands after a turn.
+- A long-lived development server left in a native terminal also keeps the run open. To hand off a persistent service, separate its lifecycle from the run, retain logs and a stop handle, and verify readiness.
+- Completion output is bounded and marked when truncated. An App Server exit or a rejected continuation request is a run failure, not successful delivery.
+
+The injected Codex instructions describe this capability only when the option is enabled. Other providers keep their existing lifecycle behavior.
+
 ## Concurrency limits
 
 One daemon executes at most 20 runs at a time by default; each agent at most 6. Effective concurrency is the smaller of the two.

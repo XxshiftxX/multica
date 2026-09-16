@@ -301,6 +301,10 @@ type Config struct {
 	RuntimeID      string
 	DaemonVersion  string
 	CodexVersion   string
+	// CodexBackgroundContinuation keeps native background command results in
+	// the same execution and feeds them into a successor Codex turn. Opt-in;
+	// requires app-server support for turn/start.toolOutput.
+	CodexBackgroundContinuation bool
 	// BuiltinRuntime reports that ExecutablePath is the provider's own
 	// discovered binary rather than a custom runtime profile's command. A
 	// custom profile keeps its protocol family as the provider, so the

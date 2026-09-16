@@ -114,7 +114,8 @@ Workspace-scoped queries filter by `workspace_id`; membership gates access and `
 
 ## Change and Delivery Rules
 
-- Keep changes scoped; reuse existing patterns. Code comments are English.
+- Keep changes scoped; reuse existing patterns.
+- PR 제목·본문, 이슈 설명, 리뷰, 커밋 메시지의 설명 부분, 코드 주석, 개발 문서는 기본적으로 한국어로 작성한다. 기존 내용을 수정할 때는 변경하는 부분부터 적용하며, 언어 통일만을 위한 일괄 번역은 하지 않는다. 코드 식별자·명령어·API 이름과 Conventional Commit 접두사(`feat:`, `fix:` 등)는 원형을 유지한다. 제품 UI와 번역 파일은 해당 로케일의 언어 규칙을 따른다. 사용자가 별도 언어를 지정하면 그 요청을 우선한다.
 - Do not add internal compatibility shims, dual writes, fallback paths, or legacy adapters unless requested. This does not relax API response compatibility above.
 - New global pre-workspace routes use a single word or `/{noun}/{verb}`, not hyphenated root names. Update `server/internal/handler/reserved_slugs.json`, run `pnpm generate:reserved-slugs`, and commit `packages/core/paths/reserved-slugs.ts` when changing reserved slugs.
 - Use atomic conventional commits and the repository PR template. For releases, follow [.github/RELEASING.md](.github/RELEASING.md); default to a patch bump unless specified otherwise.

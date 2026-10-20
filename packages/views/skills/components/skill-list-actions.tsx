@@ -54,7 +54,7 @@ import { useT } from "../../i18n";
 import { useIntentNavigate } from "../../navigation";
 import { isRefreshableOrigin, readOrigin } from "../lib/origin";
 import { RefreshSkillDialog } from "./refresh-skill-dialog";
-import type { SkillRow } from "./skills-page";
+import type { SkillRow } from "./skill-list-filter";
 
 // Shared context the row kebab and the batch toolbar both need. Assembled
 // once at the page level.
@@ -66,9 +66,7 @@ export interface SkillActionsContext {
   isAdmin: boolean;
 }
 
-// ---------------------------------------------------------------------------
 // Add-to-agent dialog (multi-select; shared by row kebab and batch toolbar)
-// ---------------------------------------------------------------------------
 
 // Attaching is permission-gated by the TARGET agent (its owner, or a
 // workspace owner/admin — server/internal/handler/agent.go canManageAgent).
@@ -321,9 +319,6 @@ export function AddToAgentDialog({
           <DialogTitle className="text-body">
             {t(($) => $.actions.add_to_agent)}
           </DialogTitle>
-          <DialogDescription className="text-caption">
-            {t(($) => $.actions.add_dialog_description)}
-          </DialogDescription>
         </DialogHeader>
 
         <SkillChips skills={skills} />
@@ -402,9 +397,7 @@ export function AddToAgentDialog({
   );
 }
 
-// ---------------------------------------------------------------------------
 // Delete confirmation (single row and batch share one dialog)
-// ---------------------------------------------------------------------------
 
 export function DeleteSkillsDialog({
   rows,
@@ -510,9 +503,7 @@ export function DeleteSkillsDialog({
   );
 }
 
-// ---------------------------------------------------------------------------
 // Bulk update-from-source (batch toolbar)
-// ---------------------------------------------------------------------------
 
 /**
  * Confirm-and-run dialog for updating several imported skills from their
@@ -645,9 +636,7 @@ export function UpdateSkillsDialog({
   );
 }
 
-// ---------------------------------------------------------------------------
 // Row kebab
-// ---------------------------------------------------------------------------
 
 // The row is a plain `<div>` whose whole-row navigation is a mouse `onClick`
 // (see `useRowLink`), not an ancestor `<a>`. The wrapper span stops click
@@ -751,9 +740,7 @@ export function SkillRowActions({
   );
 }
 
-// ---------------------------------------------------------------------------
 // Batch toolbar (floating bottom bar, same shape as the issues batch bar)
-// ---------------------------------------------------------------------------
 
 export function SkillBatchToolbar({
   rows,

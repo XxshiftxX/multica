@@ -24,7 +24,7 @@ import (
 //     a separate action that links rather than re-parents, so a Triage entry
 //     hanging off a parent is a half-state the product never asks for;
 //   - a child in Triage carries a proposed status, so it is never terminal.
-//     stageBarrierClosed would wait on it forever — holding the whole sibling
+//     the child_done stage frontier would wait on it forever — holding the whole sibling
 //     set, or one stage's frontier — and ChildIssueProgress would count it in
 //     the denominator. Both read through parent_issue_id, so refusing the write
 //     is what keeps them out of reach.
@@ -44,14 +44,6 @@ func triageLockedField(raw map[string]json.RawMessage) string {
 func writeIssueInTriage(w http.ResponseWriter, field string) {
 	writeErrorCode(w, http.StatusBadRequest, "issue_in_triage",
 		"the issue is in Triage, so its "+field+" cannot be set; accept it out of Triage first")
-}
-
-// writeStatusReservedForTriage renders issuestatus.Resolve's refusal of the
-// reserved `triage` key. The catalog carries the same rule as a CHECK
-// (migration 475), so no custom status can take the name either.
-func writeStatusReservedForTriage(w http.ResponseWriter) {
-	writeErrorCode(w, http.StatusBadRequest, "status_reserved_for_triage",
-		`status "triage" is reserved: Triage is not a status, so no issue can be moved into or out of it by a status write`)
 }
 
 // validateBatchTriageLocks rejects a batch that would set a Triage-locked field

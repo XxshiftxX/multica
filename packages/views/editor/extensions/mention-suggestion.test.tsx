@@ -178,6 +178,28 @@ function itemArgs(query: string) {
   };
 }
 
+const PICKER_INTERACTION_KEYS: KeyboardEventInit[] = [
+  { key: "Enter" },
+  { key: "Enter", shiftKey: true },
+  { key: "Enter", metaKey: true },
+  { key: "Enter", ctrlKey: true },
+  { key: "Enter", altKey: true },
+  { key: "Tab" },
+  { key: "ArrowUp" },
+  { key: "ArrowDown" },
+  { key: "n", ctrlKey: true },
+  { key: "j", ctrlKey: true },
+  { key: "p", ctrlKey: true },
+  { key: "k", ctrlKey: true },
+];
+
+function pressPickerInteractionKeys(ref: MentionListRef | null): boolean[] {
+  if (!ref) return [];
+  return PICKER_INTERACTION_KEYS.map((init) =>
+    ref.onKeyDown({ event: new KeyboardEvent("keydown", init) }),
+  );
+}
+
 describe("createMentionSuggestion", () => {
   beforeEach(() => {
     searchIssuesMock.mockReset();
@@ -258,7 +280,7 @@ describe("createMentionSuggestion", () => {
     );
   });
 
-  it("does not select a runtime-required mention row by click or keyboard", () => {
+  it("keeps picker keys inert when every mention row is disabled", () => {
     const command = vi.fn<(item: MentionItem) => void>();
     const ref = createRef<MentionListRef>();
     render(
@@ -284,11 +306,10 @@ describe("createMentionSuggestion", () => {
     });
     expect(row).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(row);
-    expect(
-      ref.current?.onKeyDown({
-        event: new KeyboardEvent("keydown", { key: "Enter" }),
-      }),
-    ).toBe(true);
+
+    expect(pressPickerInteractionKeys(ref.current)).toEqual(
+      PICKER_INTERACTION_KEYS.map(() => true),
+    );
     expect(command).not.toHaveBeenCalled();
   });
 
@@ -357,14 +378,23 @@ describe("createMentionSuggestion", () => {
     expect(searchProjectsMock).not.toHaveBeenCalled();
   });
 
-  it("captures Enter while the popup has no selectable items", () => {
+  it("lets picker keys reach the editor while search has no result rows", async () => {
+    searchIssuesMock.mockResolvedValue({ issues: [], total: 0 });
     const ref = createRef<MentionListRef>();
 
     render(<I18nWrapper><MentionList ref={ref} items={[]} query="协作" command={vi.fn()} /></I18nWrapper>);
 
-    expect(
-      ref.current?.onKeyDown({ event: new KeyboardEvent("keydown", { key: "Enter" }) }),
-    ).toBe(true);
+    expect(screen.getByText("Searching...")).toBeInTheDocument();
+    expect(pressPickerInteractionKeys(ref.current)).toEqual(
+      PICKER_INTERACTION_KEYS.map(() => false),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("No results")).toBeInTheDocument();
+    });
+    expect(pressPickerInteractionKeys(ref.current)).toEqual(
+      PICKER_INTERACTION_KEYS.map(() => false),
+    );
   });
 
   // MUL-3685: plain Tab accepts the highlighted row exactly like Enter.
@@ -412,16 +442,6 @@ describe("createMentionSuggestion", () => {
     expect(press({ key: "Tab", ctrlKey: true })).toBe(false);
     expect(press({ key: "Tab", altKey: true })).toBe(false);
     expect(command).not.toHaveBeenCalled();
-  });
-
-  it("captures Tab while the popup has no selectable items, like Enter", () => {
-    const ref = createRef<MentionListRef>();
-
-    render(<I18nWrapper><MentionList ref={ref} items={[]} query="协作" command={vi.fn()} /></I18nWrapper>);
-
-    expect(
-      ref.current?.onKeyDown({ event: new KeyboardEvent("keydown", { key: "Tab" }) }),
-    ).toBe(true);
   });
 
   // MUL-3607: groupItems() re-buckets the list (current → recent → search →
@@ -1284,13 +1304,17 @@ describe("MentionList cancelled demotion", () => {
       expect(headings()).not.toContain("Cancelled");
     });
 
-    it("keeps a cancelled direct hit visible behind a full window of live candidates", async () => {
+    it.each([
+      ["MUL-99", "MUL-99"],
+      ["V2-99", "v2-99"],
+      ["V2-99", "99"],
+    ])("keeps cancelled %s visible behind a full window when searching %s", async (identifier, query) => {
       // 20 non-cancelled cached candidates already fill every slot. Exempting
       // the direct hit from the demotion would leave it at position 21 and the
       // truncation would still delete it, so it has to be pinned to the front.
       searchIssuesMock.mockResolvedValue({
         issues: [
-          { id: "i-hit", identifier: "MUL-99", title: "Abandoned plan", status: "cancelled" },
+          { id: "i-hit", identifier, title: "Abandoned plan", status: "cancelled" },
         ],
         total: 1,
       });
@@ -1302,15 +1326,15 @@ describe("MentionList cancelled demotion", () => {
         status: "todo" as const,
       }));
 
-      render(<I18nWrapper><MentionList items={items} query="MUL-99" command={vi.fn()} /></I18nWrapper>);
+      render(<I18nWrapper><MentionList items={items} query={query} command={vi.fn()} /></I18nWrapper>);
 
       await waitFor(() => {
-        expect(screen.getByText("MUL-99")).toBeInTheDocument();
+        expect(screen.getByText(identifier)).toBeInTheDocument();
       });
 
       const labels = rowLabels();
       expect(labels).toHaveLength(20);
-      expect(labels[0]).toBe("MUL-99");
+      expect(labels[0]).toBe(identifier);
       // A live candidate gave up the last slot, not the record the user typed.
       expect(labels).not.toContain("MUL-219");
     });

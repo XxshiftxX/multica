@@ -114,13 +114,16 @@ func TestSystemdSupervisorGates(t *testing.T) {
 	})
 }
 
-// useAutostartConfigHome points XDG_CONFIG_HOME at a fresh temp dir so every
-// path helper (the systemd user dir, the autostart dir) resolves into a
-// sandbox — never the test host's real ~/.config.
+// 설정 경로와 systemctl을 격리해 실제 사용자 서비스의 자동 시작 설정을 보호한다.
 func useAutostartConfigHome(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "systemctl"), []byte("#!/bin/sh\nexit 1\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	return dir
 }
 

@@ -80,8 +80,10 @@ describe("floating chat message lifetime", () => {
 
     setOpen(false);
     expect(screen.getByTestId("messages")).toHaveAttribute("data-active", "false");
-    await waitFor(() => expect(screen.queryByTestId("messages")).not.toBeInTheDocument());
-    expect(observers()).toBe(0);
+    await waitFor(() => {
+      expect(screen.queryByTestId("messages")).not.toBeInTheDocument();
+      expect(observers()).toBe(0);
+    });
 
     act(() => qc.setQueryData(key, pages([message("arrived while closed")])));
     setOpen(true);

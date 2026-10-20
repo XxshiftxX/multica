@@ -17,7 +17,7 @@ import (
 // the same turn. It is what catches Cursor changing hook delivery, or a model
 // starting to reject tagged guidance as a prompt injection.
 func TestCursorRealSupplementReachesTheTurn(t *testing.T) {
-	requireRealAgentSmoke(t)
+	requireRealAgentTest(t)
 	if testing.Short() {
 		t.Skip("skipping real-binary smoke test in -short mode")
 	}

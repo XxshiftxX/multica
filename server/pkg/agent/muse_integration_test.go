@@ -18,7 +18,7 @@ import (
 // Muse actually emits, that approvalMode=allowAll lets a tool run without a
 // human, and that the workspace AGENTS.md reaches the model.
 func TestMuseRealMSPSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+	requireRealAgentTest(t)
 	if testing.Short() {
 		t.Skip("skipping real-binary smoke test in -short mode")
 	}

@@ -55,8 +55,12 @@ func TestHermesEscapedPipeHolderHelper(t *testing.T) {
 	if _, err := syscall.Setsid(); err != nil {
 		t.Fatalf("setsid: %v", err)
 	}
-	if err := os.WriteFile(statePath, []byte(fmt.Sprintf("%d %d", os.Getpid(), syscall.Getpgrp())), 0o600); err != nil {
+	// 읽는 쪽이 생성 직후의 빈 파일을 관찰하지 않도록 완성된 상태만 공개한다.
+	if err := os.WriteFile(statePath+".tmp", []byte(fmt.Sprintf("%d %d", os.Getpid(), syscall.Getpgrp())), 0o600); err != nil {
 		t.Fatalf("record holder identity: %v", err)
+	}
+	if err := os.Rename(statePath+".tmp", statePath); err != nil {
+		t.Fatalf("publish holder identity: %v", err)
 	}
 	time.Sleep(hermesEscapedHolderLifetime)
 }

@@ -20,7 +20,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@multica/ui/components/ui/dialog";
 import {
   Popover,
@@ -147,9 +146,6 @@ export function CreateSquadModal({ onClose }: { onClose: () => void }) {
           <DialogTitle className="text-title-sm font-semibold">
             {t(($) => $.create_squad.title)}
           </DialogTitle>
-          <DialogDescription className="mt-1 text-caption">
-            {t(($) => $.create_squad.description)}
-          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-5">
@@ -242,11 +238,9 @@ export function CreateSquadModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ---------------------------------------------------------------------------
 // LeaderPicker — single-select agent picker, grouped "My Agents" first then
 // "Workspace Agents". Empty workspaces render a disabled trigger that points
 // the user at agent creation.
-// ---------------------------------------------------------------------------
 function LeaderPicker({
   agents,
   currentUserId,
@@ -385,12 +379,10 @@ function LeaderPicker({
   );
 }
 
-// ---------------------------------------------------------------------------
 // AdditionalMembersPicker — multi-select agents + workspace members. The
 // trigger shows up to 3 chips inline; the rest collapse into "+N". The popup
 // stays open while the user toggles selections so they can pick multiple
 // without re-opening it.
-// ---------------------------------------------------------------------------
 function AdditionalMembersPicker({
   agents,
   members,

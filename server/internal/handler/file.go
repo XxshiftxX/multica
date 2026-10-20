@@ -54,9 +54,7 @@ const (
 // 100 MB log dump can't blow up the renderer.
 const maxPreviewTextSize = 2 << 20 // 2 MB
 
-// ---------------------------------------------------------------------------
 // Response types
-// ---------------------------------------------------------------------------
 
 type AttachmentResponse struct {
 	ID            string  `json:"id"`
@@ -372,13 +370,12 @@ func (h *Handler) groupChatMessageAttachments(ctx context.Context, workspaceID s
 	return grouped
 }
 
-// ---------------------------------------------------------------------------
 // UploadFile — POST /api/upload-file
-// ---------------------------------------------------------------------------
 
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
+	r = h.withWakeupActor(r)
 	if h.Storage == nil {
-		writeError(w, http.StatusServiceUnavailable, "file upload not configured")
+		writeFeatureDisabled(w, "file_upload_not_configured", "file upload not configured")
 		return
 	}
 
@@ -580,7 +577,9 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else {
-			att, err = h.Queries.CreateAttachment(r.Context(), params)
+			att, err = wakeupWrite(h, r, func(q *db.Queries) (db.CreateAttachmentRow, error) {
+				return q.CreateAttachment(r.Context(), params)
+			})
 		}
 		if err != nil {
 			slog.Error("failed to create attachment record", "error", err)
@@ -632,9 +631,7 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ---------------------------------------------------------------------------
 // ListAttachments — GET /api/issues/{id}/attachments
-// ---------------------------------------------------------------------------
 
 func (h *Handler) ListAttachments(w http.ResponseWriter, r *http.Request) {
 	issueID := chi.URLParam(r, "id")
@@ -661,15 +658,29 @@ func (h *Handler) ListAttachments(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// ---------------------------------------------------------------------------
 // GetAttachmentByID — GET /api/attachments/{id}
-// ---------------------------------------------------------------------------
 
 func (h *Handler) GetAttachmentByID(w http.ResponseWriter, r *http.Request) {
 	att, ok := h.loadAttachmentForRequest(w, r)
 	if !ok {
 		return
 	}
+	h.writeSignedAttachmentMetadata(w, r, att)
+}
+
+// GetAttachmentForDownload resolves the workspace from the attachment, as the
+// durable Markdown download URL does. A link can be pasted into a different
+// workspace; the current workspace header must not change its target. The
+// membership check is the same one used by the protected download endpoint.
+func (h *Handler) GetAttachmentForDownload(w http.ResponseWriter, r *http.Request) {
+	att, ok := h.loadAttachmentForDownload(w, r)
+	if !ok {
+		return
+	}
+	h.writeSignedAttachmentMetadata(w, r, att)
+}
+
+func (h *Handler) writeSignedAttachmentMetadata(w http.ResponseWriter, r *http.Request, att db.Attachment) {
 
 	// Always signed, regardless of what the caller advertised: this endpoint is
 	// the single source of fresh, natively-loadable URLs. Stable-mode callers
@@ -827,9 +838,7 @@ func (h *Handler) loadAttachmentForDownload(w http.ResponseWriter, r *http.Reque
 	return att, true
 }
 
-// ---------------------------------------------------------------------------
 // DownloadAttachment — GET /api/attachments/{id}/download
-// ---------------------------------------------------------------------------
 //
 // Workspace context is derived from the attachment row itself, not from
 // X-Workspace-Slug / X-Workspace-ID headers. This is what lets a markdown
@@ -849,7 +858,7 @@ func (h *Handler) DownloadAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.Storage == nil {
-		writeError(w, http.StatusServiceUnavailable, "storage not configured")
+		writeFeatureDisabled(w, "storage_not_configured", "storage not configured")
 		return
 	}
 
@@ -1264,7 +1273,6 @@ func normalizeFrameAncestorSource(raw string) (string, bool) {
 	return scheme + "://" + strings.ToLower(u.Host), true
 }
 
-// ---------------------------------------------------------------------------
 // GetAttachmentContent — GET /api/attachments/{id}/content
 //
 // Streams the raw bytes of a text-previewable attachment back to the client.
@@ -1277,7 +1285,6 @@ func normalizeFrameAncestorSource(raw string) (string, bool) {
 //
 // Hard cap: 2 MB. Larger files return 413. Anything outside the text
 // whitelist returns 415.
-// ---------------------------------------------------------------------------
 
 func (h *Handler) GetAttachmentContent(w http.ResponseWriter, r *http.Request) {
 	att, ok := h.loadAttachmentForRequest(w, r)
@@ -1292,7 +1299,7 @@ func (h *Handler) GetAttachmentContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.Storage == nil {
-		writeError(w, http.StatusServiceUnavailable, "storage not configured")
+		writeFeatureDisabled(w, "storage_not_configured", "storage not configured")
 		return
 	}
 	key := h.Storage.KeyFromURL(att.Url)
@@ -1365,6 +1372,7 @@ func isTextPreviewable(contentType, filename string) bool {
 	}
 	switch ct {
 	case "application/json",
+		"application/x-ndjson",
 		"application/javascript",
 		"application/xml",
 		"application/x-yaml",
@@ -1381,7 +1389,7 @@ func isTextPreviewable(contentType, filename string) bool {
 		".txt", ".log",
 		".csv", ".tsv",
 		".html", ".htm",
-		".json", ".xml",
+		".json", ".jsonl", ".ndjson", ".xml",
 		".yml", ".yaml", ".toml", ".ini", ".conf",
 		".sh", ".bash", ".zsh",
 		".py", ".rb", ".go", ".rs",
@@ -1403,11 +1411,10 @@ func isTextPreviewable(contentType, filename string) bool {
 	return false
 }
 
-// ---------------------------------------------------------------------------
 // DeleteAttachment — DELETE /api/attachments/{id}
-// ---------------------------------------------------------------------------
 
 func (h *Handler) DeleteAttachment(w http.ResponseWriter, r *http.Request) {
+	r = h.withWakeupActor(r)
 	attachmentID := chi.URLParam(r, "id")
 	workspaceID := h.resolveWorkspaceID(r)
 	if workspaceID == "" {
@@ -1497,9 +1504,7 @@ func (h *Handler) DeleteAttachment(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ---------------------------------------------------------------------------
 // Attachment linking
-// ---------------------------------------------------------------------------
 
 // linkAttachmentsByIssueIDs links unbound attachments to an issue. A caller
 // that did not already advance the issue revision can ask this visible change
@@ -1550,7 +1555,7 @@ func (h *Handler) withAttachmentOwnerLock(ctx context.Context, att db.Attachment
 var errAttachmentOwnerChanged = errors.New("attachment owner changed")
 
 func (h *Handler) attachmentOwnerLockAttempt(ctx context.Context, att db.Attachment, write func(*db.Queries) error) (db.Attachment, error) {
-	tx, err := h.TxStarter.Begin(ctx)
+	tx, err := h.beginWakeupWrite(ctx)
 	if err != nil {
 		return db.Attachment{}, err
 	}

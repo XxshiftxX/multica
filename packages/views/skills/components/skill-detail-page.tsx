@@ -172,9 +172,7 @@ function isDetailView(value: string | null): value is DetailView {
   return value === "overview" || value === "files";
 }
 
-// ---------------------------------------------------------------------------
 // File path validation + inline add
-// ---------------------------------------------------------------------------
 
 export function useValidateNewFilePath() {
   const { t } = useT("skills");
@@ -256,9 +254,7 @@ function AddFileInline({
   );
 }
 
-// ---------------------------------------------------------------------------
 // Header
-// ---------------------------------------------------------------------------
 
 function useOriginLabel(origin: OriginInfo | null, runtime: AgentRuntime | null) {
   const { t } = useT("skills");
@@ -385,9 +381,7 @@ function SkillIdentity({
   );
 }
 
-// ---------------------------------------------------------------------------
 // Overview tab
-// ---------------------------------------------------------------------------
 
 function PropertyRow({
   label,
@@ -473,9 +467,12 @@ function OverviewTab({
       <div className="w-full max-w-3xl">
         <section>
           <h2 className="text-title-sm font-medium">{t(($) => $.detail.overview.properties)}</h2>
-          <p className="mt-1 text-caption text-muted-foreground">
-            {t(($) => $.detail.overview.properties_hint)}
-          </p>
+          <details className="mt-1 text-caption text-muted-foreground">
+            <summary className="cursor-pointer rounded-sm py-2 focus-visible:outline-2 focus-visible:outline-ring">
+              {t(($) => $.detail.overview.properties_help)}
+            </summary>
+            <p className="mt-1">{t(($) => $.detail.overview.properties_hint)}</p>
+          </details>
           <div className="mt-4 divide-y">
             <PropertyRow label={t(($) => $.detail.overview.name)} htmlFor="skill-name">
               <Input
@@ -504,11 +501,12 @@ function OverviewTab({
                 rows={6}
                 className="text-body leading-relaxed read-only:cursor-default"
               />
-              <p className="mt-1.5 text-caption text-muted-foreground">
-                {t(($) => $.detail.overview.description_hint, {
-                  count: description.length,
-                })}
-              </p>
+              <div className="mt-1.5 flex flex-wrap justify-between gap-x-4 gap-y-1 text-caption text-muted-foreground">
+                <p>{t(($) => $.detail.overview.description_hint)}</p>
+                <span className="tabular-nums">
+                  {t(($) => $.detail.overview.character_count, { count: description.length })}
+                </span>
+              </div>
             </PropertyRow>
 
             <PropertyRow label={t(($) => $.detail.overview.labels)}>
@@ -553,9 +551,7 @@ function OverviewTab({
   );
 }
 
-// ---------------------------------------------------------------------------
 // Files tab
-// ---------------------------------------------------------------------------
 
 function FilesTab({
   filePaths,
@@ -752,9 +748,7 @@ function FilesTab({
   );
 }
 
-// ---------------------------------------------------------------------------
 // Main page
-// ---------------------------------------------------------------------------
 
 export function SkillDetailPage({ skillId }: { skillId: string }) {
   const { t } = useT("skills");

@@ -38,6 +38,7 @@ const PERMISSION_SCOPES: AgentPermissionScope[] = [
 export function AgentConfigurationPanel({
   draft,
   onChange,
+  onAutomaticChange = onChange,
   runtimes,
   runtimesLoading,
   members,
@@ -51,6 +52,8 @@ export function AgentConfigurationPanel({
 }: {
   draft: AgentDraft;
   onChange: (draft: AgentDraft) => void;
+  /** Value cleanup without user interaction, such as an unsupported model. */
+  onAutomaticChange?: (draft: AgentDraft) => void;
   runtimes: RuntimeDevice[];
   runtimesLoading: boolean;
   members: MemberWithUser[];
@@ -95,7 +98,6 @@ export function AgentConfigurationPanel({
     <div className={cn("space-y-8", compact && "space-y-6")}>
       <SettingsSection
         title={t(($) => $.creation_studio.sections.identity)}
-        description={t(($) => $.creation_studio.sections.identity_hint)}
       >
         <SettingsCard>
           <DraftFieldRow
@@ -153,7 +155,6 @@ export function AgentConfigurationPanel({
 
       <SettingsSection
         title={t(($) => $.creation_studio.sections.behavior)}
-        description={t(($) => $.creation_studio.sections.behavior_hint)}
       >
         <SettingsCard>
           <DraftFieldRow
@@ -209,6 +210,7 @@ export function AgentConfigurationPanel({
                 selectedRuntimeId={draft.runtimeId}
                 onSelect={handleRuntimeSelect}
                 disabled={runtimeLocked}
+                autoSelect={!onRuntimeSelect}
               />
               {/* A silently greyed-out picker is the worst version of this: the
                   user reaches for it exactly when the current runtime has gone
@@ -224,6 +226,9 @@ export function AgentConfigurationPanel({
               runtimeOnline={selectedRuntime?.status === "online"}
               value={draft.model}
               onChange={(value) => onChange(applyDraftModelChange(draft, value))}
+              onAutomaticChange={(value) =>
+                onAutomaticChange(applyDraftModelChange(draft, value))
+              }
               // A successful switch clears the model, so an edit made while the
               // rebind is in flight would be silently discarded.
               disabled={!selectedRuntime || runtimeSwitchInFlight}
@@ -245,7 +250,6 @@ export function AgentConfigurationPanel({
 
       <SettingsSection
         title={t(($) => $.creation_studio.sections.access)}
-        description={t(($) => $.creation_studio.sections.access_hint)}
       >
         <SettingsCard>
           <div

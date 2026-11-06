@@ -12,7 +12,7 @@ import (
 )
 
 func TestPiSandboxWrapperProbeReal(t *testing.T) {
-	requireRealAgentSmoke(t)
+	requireRealAgentTest(t)
 	pi, err := exec.LookPath("pi")
 	if err != nil {
 		t.Skip("pi is not installed")

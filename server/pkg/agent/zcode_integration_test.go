@@ -27,7 +27,7 @@ import (
 // zcode.cjs entry point) or
 // `zcode` on PATH, and requires a configured API connection.
 func TestZcodeRealProtocolSmoke(t *testing.T) {
-	requireRealAgentSmoke(t)
+	requireRealAgentTest(t)
 	if testing.Short() {
 		t.Skip("skipping real-binary smoke test in -short mode")
 	}

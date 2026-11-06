@@ -1296,7 +1296,7 @@ func (b *codexBackend) executeOnce(ctx context.Context, prompt string, opts Exec
 		background: background,
 		onContinuationTurn: func() {
 			outputMu.Lock()
-			finalAnswer, lastAgentMessage = "", ""
+			output = codexOutputSelection{}
 			outputMu.Unlock()
 		},
 		onDiscardedNotification: func(string, map[string]any) {

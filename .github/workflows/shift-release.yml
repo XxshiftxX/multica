@@ -24,7 +24,8 @@ jobs:
         run: git fetch https://github.com/multica-ai/multica.git 'refs/tags/v*:refs/tags/v*'
       - uses: actions/setup-go@v5
         with:
-          go-version-file: server/go.mod
+          go-version: "~1.27.3"
+          check-latest: true
           cache-dependency-path: server/go.sum
       - run: bash scripts/shift/version.test.sh
       - run: bash scripts/test-go.sh --race
@@ -104,7 +105,8 @@ jobs:
         run: git fetch https://github.com/multica-ai/multica.git 'refs/tags/v*:refs/tags/v*'
       - uses: actions/setup-go@v5
         with:
-          go-version-file: server/go.mod
+          go-version: "~1.27.3"
+          check-latest: true
           cache-dependency-path: server/go.sum
       - run: scripts/shift/build-cli.sh
       - uses: actions/upload-artifact@v4

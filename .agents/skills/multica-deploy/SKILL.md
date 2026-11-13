@@ -52,7 +52,10 @@ backend·web의 linux/amd64 및 linux/arm64 이미지와 Linux/macOS CLI를 같�
 개발 서버에는 Production kubeconfig가 없고 직접 SSH도 허용되지 않을 수 있다.
 기존 GitHub Actions의 Tailscale·SSH 연결을 사용한다. 자격 증명을 로컬로 복사하지 않는다.
 
-배포 전 백업 workflow를 실행하고 성공을 확인한다.
+선택한 버전의 migration 변경·하위 호환성과 기존 백업의 유효성을 확인한다.
+기존 백업 근거가 충분한 일반 이미지 교체에는 새 dump나 restore 시험을 반복하지 않는다.
+기존 백업 근거가 부족하거나 schema/data 변경으로 새 백업이 필요하면 다음 workflow를 사용한다.
+비호환·비가역 변경은 사용자에게 정확한 복구 영향과 필요한 결정을 제시한다.
 
 ```bash
 gh workflow run verify-multica-production.yml --repo XxshiftxX/shift-infra \
@@ -61,8 +64,7 @@ gh workflow run verify-multica-production.yml --repo XxshiftxX/shift-infra \
 
 이 작업은 현재 imageID와 Multica DB archive를 Production의
 `/srv/shift-infra/backups/multica/`에 보관하고 DB에 연결하지 않고 archive 전체를 검사한다.
-성공한 실행 URL과 백업 경로를 배포 기록에 남긴다. backend는 시작 시 migration을 실행하므로
-선택한 버전의 migration 변경도 확인한다.
+실행했다면 성공 URL과 백업 경로를 배포 기록에 남기고, 기존 백업을 재사용했다면 그 근거를 남긴다.
 
 선택한 릴리스로 배포 PR을 생성한다. 기본 예약 실행은 매시간 최신 정식 릴리스를 찾는다.
 
@@ -121,6 +123,12 @@ health 포트는 기본 profile 기준이다. 다른 profile이나 머신을 요
 runtime 등록을 확인한다. Secret이나 전체 process environment를 출력하지 않는다.
 
 ## 완료 보고와 실패 처리
+
+일반 배포는 발행 결과의 exact digest와 직전 정상 digest·기존 GitOps revert 절차를
+기본 근거로 사용한다. 이전 이미지 manifest 조회·재pull·롤백 훈련·전체 운영 회귀를
+매 배포의 선행 조건으로 만들지 않는다. 필수 CI·브랜치 보호·기존 리뷰 요건은 유지한다.
+실제 운영 pull 실패나 비호환은 진단하며, 로컬 인증 실패만으로 운영 장애를 단정하거나
+개인 인증 권한 확대를 요청하지 않는다. 기존 운영 CI 접근을 먼저 사용한다.
 
 배포한 릴리스, 병합 PR, Production 검증 실행, 데몬 버전과 백업 위치를 짧게 보고한다.
 실제로 검증한 범위를 명시하고, 배포 설정 변경과 하네스 동작 변경을 구분한다.

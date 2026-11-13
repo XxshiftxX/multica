@@ -134,3 +134,7 @@ Workspace-scoped queries filter by `workspace_id`; membership gates access and `
 
 For Shift fork releases and deployment to k3s or the local daemon, use
 [`.agents/skills/multica-deploy/SKILL.md`](.agents/skills/multica-deploy/SKILL.md).
+
+승인된 일반 이미지 배포는 필수 CI·릴리스 발행 → 정상 GitOps 변경 → 대상 버전·rollout·health와 변경한 핵심 기능 확인으로 끝낸다. 직전 정상 digest와 기존 revert 절차를 기록하되, 매 배포마다 이전 이미지 manifest 조회·재pull·실제 롤백 시험이나 전체 운영 회귀를 새 관문으로 요구하지 않는다. 제품팀이 배포·확인을 소유하고 기존 운영 CI 접근을 먼저 사용한다. 실제 공유 기반 문제만 SRE에 넘긴다.
+
+DB migration·데이터 형식의 비호환, 새 복구 방식, 비가역 데이터 변경, secret 원본·권한·신뢰 경계·보호 우회는 별도 판단한다. 기존 백업의 유효성과 migration 변경을 확인하며 새 dump/restore 시험을 모든 릴리스에 강제하지 않는다. 최종 SHA 필수 CI·브랜치 보호·기존 리뷰, 데몬의 실행 중 작업 보호와 API 호환성 규칙은 유지한다. 공통 기준은 [shift-infra 배포 문서](https://github.com/XxshiftxX/shift-infra/blob/main/docs/deployment.md)를 따른다.

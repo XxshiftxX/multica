@@ -35,6 +35,17 @@ public으로 설정한다. k3s는 별도 registry credential 없이 digest로 pu
 PR을 병합하면 Flux가 배포한다. backend는 시작 시 DB migration을 실행하므로
 migration 호환성과 기존 백업을 배포 PR에서 확인한다.
 
+일반 배포는 발행된 source·digest와 직전 정상 digest를 기록하고, 필수 CI·기존 리뷰·
+브랜치 보호를 지켜 반영한 뒤 대상 버전·rollout·health·변경한 핵심 기능만 확인한다.
+매번 이전 이미지 조회·재pull·실제 롤백 시험이나 전체 운영 회귀를 새 조건으로 요구하지
+않는다. 기존 백업 근거를 재사용하며 migration 변경이나 백업 근거 부족 때만 필요한
+추가 백업/복구 검증을 선택한다. 이미지 revert는 DB migration을 되돌리지 않으므로
+비호환·비가역 변경은 별도 명시 결정이 필요하다.
+
+제품팀은 기존 운영 CI 접근으로 배포·확인을 직접 수행한다. 로컬 접근 실패만으로
+개인 인증 권한 확대를 요구하지 않는다. 공유 기반 점검·이미지 보존·복구 훈련은
+SRE의 평시 책임이며 [공통 배포 기준](https://github.com/XxshiftxX/shift-infra/blob/main/docs/deployment.md)을 따른다.
+
 데몬 배포는 infra 저장소의 `scripts/install-multica-daemon.sh`를 사용한다.
 `multica update`는 upstream 바이너리를 받으므로 포크 업데이트에 사용하지 않는다.
 

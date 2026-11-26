@@ -22,7 +22,7 @@ import (
 //     (session/create pins mode=yolo, so no interactive permission prompt
 //     blocks the turn)
 //
-// Gated by MULTICA_RUN_REAL_AGENT_SMOKE=1 per AGENTS.md. The CLI is
+// Gated by MULTICA_RUN_REAL_AGENT_TESTS=1 per AGENTS.md. The CLI is
 // discovered from MULTICA_ZCODE_PATH (which may directly name the desktop bundle
 // zcode.cjs entry point) or
 // `zcode` on PATH, and requires a configured API connection.

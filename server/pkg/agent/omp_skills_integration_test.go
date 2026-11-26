@@ -12,8 +12,8 @@ import (
 )
 
 func TestOmpSkillDiscoveryWithoutModelCall(t *testing.T) {
-	if os.Getenv("MULTICA_RUN_REAL_AGENT_SMOKE") != "1" {
-		t.Skip("set MULTICA_RUN_REAL_AGENT_SMOKE=1 to run real-agent smoke tests")
+	if os.Getenv("MULTICA_RUN_REAL_AGENT_TESTS") != "1" {
+		t.Skip("set MULTICA_RUN_REAL_AGENT_TESTS=1 to run real-agent smoke tests")
 	}
 	binary := os.Getenv("MULTICA_OMP_SMOKE_EXECUTABLE")
 	if binary == "" {

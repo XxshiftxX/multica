@@ -735,6 +735,21 @@ func TestProjectReposReplaceWorkspaceReposInMetaSkill(t *testing.T) {
 	}
 }
 
+func TestProjectContextNotesArchivedProject(t *testing.T) {
+	t.Parallel()
+	for _, archived := range []bool{false, true} {
+		var b strings.Builder
+		writeProjectContext(&b, TaskContextForEnv{
+			ProjectID:       "22222222-3333-4444-5555-666666666666",
+			ProjectTitle:    "Old Project",
+			ProjectArchived: archived,
+		})
+		if got := strings.Contains(b.String(), "This project is **archived**"); got != archived {
+			t.Errorf("archived=%v: brief archived note present=%v:\n%s", archived, got, b.String())
+		}
+	}
+}
+
 func TestWriteProjectResourcesSkippedWhenNone(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
@@ -1314,6 +1329,8 @@ func TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic(t *testing.T) {
 	}{
 		{"claude", "CLAUDE.md"},
 		{"codex", "AGENTS.md"},
+		{"codebuddy", "CODEBUDDY.md"},
+		{"antigravity", "AGENTS.md"},
 		{"opencode", "AGENTS.md"},
 		{"codearts", "AGENTS.md"},
 		{"hermes", "AGENTS.md"},
@@ -1332,15 +1349,32 @@ func TestInjectRuntimeConfigBackgroundTaskSafetyProviderAgnostic(t *testing.T) {
 				t.Fatalf("read %s: %v", tc.file, err)
 			}
 			s := string(data)
-			for _, want := range []string{
-				"## Background Task Safety",
-				"any run-owned work still active is orphaned",
+			providerPins := []string{
 				"no background-completion wakeup",
 				"whatever a tool response promises",
 				"Never background-and-yield",
+			}
+			if tc.name == "antigravity" {
+				// Its model subturn can end while the same agy process waits.
+				// Detached processes and the shared CI contract stay restricted.
+				providerPins = []string{
+					"completion notifications in the same process",
+					"yield the model subturn while waiting",
+					"without polling `manage_task` or task logs",
+					"have no such wakeup",
+				}
+			}
+			for _, want := range providerPins {
+				if !strings.Contains(s, want) {
+					t.Errorf("%s missing provider boundary %q", tc.name, want)
+				}
+			}
+			for _, want := range []string{
+				"## Background Task Safety",
+				"any run-owned work still active is orphaned",
+				"standing by",
 				"foreground tool calls that block",
 				"run unobservable work synchronously",
-				"standing by",
 				"persistent service handoff",
 				"running service itself is the requested deliverable",
 				"durable logs",

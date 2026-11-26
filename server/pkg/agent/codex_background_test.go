@@ -54,38 +54,45 @@ func TestCodexExecuteBackgroundContinuation(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("POSIX shell fixture")
 	}
-	for _, enabled := range []bool{false, true} {
-		t.Run(map[bool]string{false: "disabled", true: "enabled"}[enabled], func(t *testing.T) {
-			fake := writeFakeCodexAppServer(t, codexBackgroundFixture)
-			backend, err := New("codex", Config{ExecutablePath: fake, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), CodexBackgroundContinuation: enabled})
-			if err != nil {
-				t.Fatal(err)
-			}
-			session, err := backend.Execute(context.Background(), "test", ExecOptions{Timeout: 5 * time.Second})
-			if err != nil {
-				t.Fatal(err)
-			}
-			go func() {
-				for range session.Messages {
+	for _, pooled := range []bool{false, true} {
+		for _, enabled := range []bool{false, true} {
+			t.Run(map[bool]string{false: "cold", true: "pooled"}[pooled]+"/"+map[bool]string{false: "disabled", true: "enabled"}[enabled], func(t *testing.T) {
+				var pool *WarmSessionPool
+				if pooled {
+					pool = NewWarmSessionPool(WarmSessionPoolConfig{})
+					t.Cleanup(func() { pool.Close() })
 				}
-			}()
-			result := <-session.Result
-			want := "BACKGROUND_PENDING"
-			if enabled {
-				want = "FAILURE_HANDLED"
-			}
-			if result.Status != "completed" || result.Output != want {
-				t.Fatalf("result=%+v want output=%q", result, want)
-			}
-			wantInput, wantOutput := int64(10), int64(2)
-			if enabled {
-				wantInput, wantOutput = 30, 5
-			}
-			usage := result.Usage["unknown"]
-			if usage.InputTokens != wantInput || usage.OutputTokens != wantOutput {
-				t.Fatalf("usage=%+v want input=%d output=%d", usage, wantInput, wantOutput)
-			}
-		})
+				fake := writeFakeCodexAppServer(t, codexBackgroundFixture)
+				backend, err := New("codex", Config{ExecutablePath: fake, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), CodexBackgroundContinuation: enabled, WarmPool: pool})
+				if err != nil {
+					t.Fatal(err)
+				}
+				session, err := backend.Execute(context.Background(), "test", ExecOptions{Timeout: 5 * time.Second})
+				if err != nil {
+					t.Fatal(err)
+				}
+				go func() {
+					for range session.Messages {
+					}
+				}()
+				result := <-session.Result
+				want := "BACKGROUND_PENDING"
+				if enabled {
+					want = "FAILURE_HANDLED"
+				}
+				if result.Status != "completed" || result.Output != want {
+					t.Fatalf("result=%+v want output=%q", result, want)
+				}
+				wantInput, wantOutput := int64(10), int64(2)
+				if enabled {
+					wantInput, wantOutput = 30, 5
+				}
+				usage := result.Usage["unknown"]
+				if usage.InputTokens != wantInput || usage.OutputTokens != wantOutput {
+					t.Fatalf("usage=%+v want input=%d output=%d", usage, wantInput, wantOutput)
+				}
+			})
+		}
 	}
 }
 
